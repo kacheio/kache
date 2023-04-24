@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+// Cache key for lookups and inserts.
+message Key {
+  string cluster_name = 1;
+  string host = 2;
+  string path = 3;
+  string query = 4;
+  enum Scheme {
+    UNSPECIFIED = 0;
+    HTTP = 1;
+    HTTPS = 2;
+  }
+  // If UNSPECIFIED, the scheme is not included in the cache key, and http and
+  // https will map to the same cache entry. Otherwise, the scheme is part of
+  // the cache key.
+  Scheme scheme = 5;
+  // Implementations can store arbitrary content in these fields; never set by kache.
+  repeated bytes custom_fields = 6;
+  repeated int64 custom_ints = 7;
+};
