@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/cespare/xxhash/v2 v2.2.0
+	github.com/gorilla/mux v1.8.0
 	github.com/stretchr/testify v1.8.2
 	gopkg.in/yaml.v3 v3.0.1
 )

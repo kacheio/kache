@@ -5,36 +5,40 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gorilla/mux"
 	"github.com/toashd/kache/pkg/server"
 )
 
 // Config holds the API configuration.
 type Config struct {
-	Port int    `yaml:"port"`
-	Path string `yaml:"path,omitempty"`
+	Port  int    `yaml:"port"`
+	Path  string `yaml:"path,omitempty"`
+	Debug bool   `yaml:"debug,omitempty"`
 }
 
 // API is the root API structure.
 type API struct {
-	cfg    Config
+	config Config
 	server *Server
 }
 
+// New creates a new API.
 func New(cfg Config) (*API, error) {
-	server := NewServer()
+	srv := NewServer(cfg)
 
 	api := &API{
-		cfg:    cfg,
-		server: server,
+		config: cfg,
+		server: srv,
 	}
 
 	return api, nil
 }
 
+// Run starts the API server.
 func (a *API) Run() {
-	port := fmt.Sprintf(":%d", a.cfg.Port)
+	port := fmt.Sprintf(":%d", a.config.Port)
 
-	path := a.cfg.Path
+	path := a.config.Path
 
 	log.Printf("Starting API server on %s at /%s", port, path)
 	log.Fatal(http.ListenAndServe(port, a.server))
@@ -47,13 +51,17 @@ func (a *API) RegisterProxy(p server.Proxy) {
 }
 
 type Server struct {
-	router *http.ServeMux
+	router *mux.Router
 }
 
-func NewServer() *Server {
-	return &Server{
-		router: http.NewServeMux(),
+func NewServer(cfg Config) *Server {
+	srv := &Server{
+		router: mux.NewRouter(),
 	}
+	if cfg.Debug {
+		DebugHandler{}.Append(srv.router)
+	}
+	return srv
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
