@@ -1,23 +1,26 @@
 package api
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/toashd/kache/pkg/server"
 )
 
+// Config holds the API configuration.
 type Config struct {
-	port int
+	Port int    `yaml:"port"`
+	Path string `yaml:"path,omitempty"`
 }
 
+// API is the root API structure.
 type API struct {
 	cfg    Config
 	server *Server
 }
 
 func New(cfg Config) (*API, error) {
-
 	server := NewServer()
 
 	api := &API{
@@ -29,7 +32,12 @@ func New(cfg Config) (*API, error) {
 }
 
 func (a *API) Run() {
-	log.Fatal(http.ListenAndServe(":1338", a.server))
+	port := fmt.Sprintf(":%d", a.cfg.Port)
+
+	path := a.cfg.Path
+
+	log.Printf("Starting API server on %s at /%s", port, path)
+	log.Fatal(http.ListenAndServe(port, a.server))
 }
 
 // RegisterProxy registers the cache HTTP service.

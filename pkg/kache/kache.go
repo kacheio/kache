@@ -13,13 +13,13 @@ import (
 type Config struct {
 	ApplicationName string `yaml:"-"`
 
-	API api.Config `yaml:"api"`
-	// Server server.Config `yaml:"server"`
+	API    api.Config    `yaml:"api"`
+	Server server.Config `yaml:"server"`
 	// Storage 	storage.Config ´yaml:"storage"´
 }
 
 // Kache is the root data structure for Kache.
-type Kache struct { // could also be Server
+type Kache struct {
 	Cfg Config
 
 	API      *api.API
@@ -33,8 +33,6 @@ func New(cfg Config) (*Kache, error) {
 		Cfg: cfg,
 	}
 
-	// TODO(toashd): setup tracing etc. here.
-
 	if err := kache.setupModules(); err != nil {
 		return nil, err
 	}
@@ -44,7 +42,7 @@ func New(cfg Config) (*Kache, error) {
 
 // initAPI initializes the public API.
 func (t *Kache) initAPI() (err error) {
-	t.API, err = api.New(api.Config{})
+	t.API, err = api.New(t.Cfg.API)
 	if err != nil {
 		return err
 	}
@@ -54,12 +52,7 @@ func (t *Kache) initAPI() (err error) {
 
 // initServer initializes the core server.
 func (t *Kache) initServer() (err error) {
-	backends := []string{
-		"http://localhost:8000",
-		"http://localhost:8000",
-	}
-
-	t.Server, err = server.NewProxy(backends, *t.Provider)
+	t.Server, err = server.NewProxy(t.Cfg.Server, *t.Provider)
 	if err != nil {
 		return err
 	}
@@ -108,7 +101,6 @@ func (t *Kache) Run() error {
 
 	// Start API server
 	go func() {
-		log.Println("Starting api server on :1338")
 		t.API.Run()
 	}()
 

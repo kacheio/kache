@@ -20,8 +20,14 @@ func TestNewProxy(t *testing.T) {
 
 	cache, _ := provider.NewSimpleCache(nil)
 
+	config := Config{
+		Upstreams: []UpstreamConfig{
+			{"test", testServer.URL},
+		},
+	}
+
 	// Create a new reverse proxy with the test server as the only backend
-	proxy, _ := NewProxy([]string{testServer.URL}, cache)
+	proxy, _ := NewProxy(config, cache)
 	proxyServer := httptest.NewServer(proxy)
 	defer proxyServer.Close()
 

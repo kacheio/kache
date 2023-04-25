@@ -14,6 +14,16 @@ import (
 
 type ctxCacheKey struct{}
 
+// Connfig holds the server configuration.
+type Config struct {
+	Upstreams []UpstreamConfig `yaml:"upstreams"`
+}
+
+type UpstreamConfig struct {
+	Name string `yaml:"name"`
+	Addr string `yaml:"addr"`
+}
+
 type Proxy struct {
 	// The list of backend servers to load balance between
 	backends []*url.URL
@@ -26,10 +36,13 @@ type Proxy struct {
 }
 
 // NewProxy creates a new proxy.
-func NewProxy(backends []string, cache provider.Provider) (*Proxy, error) {
+func NewProxy(config Config, cache provider.Provider) (*Proxy, error) {
+
+	backends := config.Upstreams
+
 	backendURLs := make([]*url.URL, len(backends))
 	for i, backend := range backends {
-		backendURL, err := url.Parse(backend)
+		backendURL, err := url.Parse(backend.Addr)
 		if err != nil {
 			log.Fatal(err)
 		}
