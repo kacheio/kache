@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/toashd/kache/pkg/kache"
+	"github.com/kacheio/kache/pkg/kache"
 	"gopkg.in/yaml.v3"
 )
 

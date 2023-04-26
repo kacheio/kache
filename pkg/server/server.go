@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/toashd/kache/pkg/provider"
+	"github.com/kacheio/kache/pkg/provider"
 )
 
 type ctxCacheKey struct{}

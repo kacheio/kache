@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/toashd/kache/pkg/server"
+	"github.com/kacheio/kache/pkg/server"
 )
 
 // Config holds the API configuration.

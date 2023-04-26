@@ -4,9 +4,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/toashd/kache/pkg/api"
-	"github.com/toashd/kache/pkg/provider"
-	server "github.com/toashd/kache/pkg/server"
+	"github.com/kacheio/kache/pkg/api"
+	"github.com/kacheio/kache/pkg/provider"
+	"github.com/kacheio/kache/pkg/server"
 )
 
 // Config is the root config for kache.

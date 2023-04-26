@@ -1,4 +1,4 @@
-module github.com/toashd/kache
+module github.com/kacheio/kache
 
 go 1.20
 

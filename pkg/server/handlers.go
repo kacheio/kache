@@ -11,7 +11,7 @@ import (
 	"net/http/httputil"
 	"time"
 
-	"github.com/toashd/kache/pkg/cache"
+	"github.com/kacheio/kache/pkg/cache"
 )
 
 // ServeHTTP is the main handler, serving the response

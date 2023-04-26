@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/toashd/kache/pkg/provider"
+	"github.com/kacheio/kache/pkg/provider"
 )
 
 func TestNewProxy(t *testing.T) {
