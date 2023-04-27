@@ -4,6 +4,8 @@
 *.dll
 *.so
 *.dylib
+.DS_Store
+.vscode/
 
 # Test binary, built with `go test -c`
 *.test
@@ -14,6 +16,12 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
+# Backup files
+*.bkp
+
 # Log files
 .log
 logs/
+
+# Local config files
+/kache.yml
