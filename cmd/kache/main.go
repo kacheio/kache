@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/kacheio/kache/pkg/kache"
+	"github.com/kacheio/kache/pkg/utils/logger"
+	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v3"
 )
 
@@ -27,7 +28,6 @@ func main() {
 	var configFile string
 
 	flag.StringVar(&configFile, configFileOption, configFileOption, "")
-
 	flag.Parse()
 
 	if configFile != "" {
@@ -39,16 +39,18 @@ func main() {
 
 	// TODO: validate config.
 
+	logger.InitLogger(&config.Logger)
+
 	t, err := kache.New(config)
 	if err != nil {
-		log.Fatal("initializing application", err)
+		log.Fatal().Err(err).Msg("initializing application")
 	}
 
-	log.Println("Starting application", "version", "0.0.1")
+	log.Info().Msgf("Starting application version 0.0.1")
 
 	err = t.Run()
 	if err != nil {
-		log.Fatal("running application", err)
+		log.Fatal().Err(err).Msg("running application")
 	}
 }
 

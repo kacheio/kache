@@ -20,7 +20,9 @@
 # Logs configuration
 ################################################################
 
-# TODO
+logging:
+  level: debug
+  # filePath: logs/log
 
 ################################################################
 # API configuration
@@ -47,7 +49,6 @@ server:
       addr: http://localhost:8000
     - name: backend2
       addr: http://localhost:8000
-  
 ################################################################
 # Cluster configuration
 ################################################################

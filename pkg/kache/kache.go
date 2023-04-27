@@ -1,12 +1,13 @@
 package kache
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/kacheio/kache/pkg/api"
 	"github.com/kacheio/kache/pkg/provider"
 	"github.com/kacheio/kache/pkg/server"
+	"github.com/kacheio/kache/pkg/utils/logger"
+	"github.com/rs/zerolog/log"
 )
 
 // Config is the root config for kache.
@@ -15,6 +16,8 @@ type Config struct {
 
 	API    api.Config    `yaml:"api"`
 	Server server.Config `yaml:"server"`
+	Logger logger.Config `yaml:"logging"`
+
 	// Storage 	storage.Config ´yaml:"storage"´
 }
 
@@ -87,7 +90,7 @@ func (t *Kache) setupModules() error {
 	}
 
 	for m, initFn := range modules {
-		log.Println("Initializing", m)
+		log.Info().Msgf("Initializing %s", m)
 		if err := initFn(); err != nil {
 			return err
 		}
@@ -105,18 +108,18 @@ func (t *Kache) Run() error {
 	}()
 
 	// Start proxy server
-	log.Println("Starting server on :1337")
+	log.Info().Msg("Starting server on :1337")
 	if err := http.ListenAndServe(":1337", t.Server); err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("starting server")
 	}
 
 	// Start secure server
 	tlsEnabled := false
 	if tlsEnabled {
 		// Start the server with TLS termination
-		log.Println("Starting server on :443")
+		log.Info().Msg("Starting server on :443")
 		if err := http.ListenAndServeTLS(":443", "server.crt", "server.key", t.Server); err != nil {
-			log.Fatal(err)
+			log.Fatal().Err(err).Msg("starting secure server")
 		}
 	}
 

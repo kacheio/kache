@@ -2,11 +2,11 @@ package api
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
 	"github.com/kacheio/kache/pkg/server"
+	"github.com/rs/zerolog/log"
 )
 
 // Config holds the API configuration.
@@ -40,8 +40,10 @@ func (a *API) Run() {
 
 	path := a.config.Path
 
-	log.Printf("Starting API server on %s at /%s", port, path)
-	log.Fatal(http.ListenAndServe(port, a.server))
+	log.Info().Msgf("Starting API server on %s at /%s", port, path)
+	if err := http.ListenAndServe(port, a.server); err != nil {
+		log.Fatal().Err(err).Msg("starting API server")
+	}
 }
 
 // RegisterProxy registers the cache HTTP service.
