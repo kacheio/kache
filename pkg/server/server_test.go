@@ -14,7 +14,7 @@ func TestNewProxy(t *testing.T) {
 	// Create a test HTTP server that returns a simple response
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Hello, world!"))
+		_, _ = w.Write([]byte("Hello, world!"))
 	}))
 	defer testServer.Close()
 

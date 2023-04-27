@@ -92,7 +92,10 @@ func (p *Proxy) GetCacheKeysHandler(w http.ResponseWriter, r *http.Request) {
 	it.Close()
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(keys)
+	if err := json.NewEncoder(w).Encode(keys); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 // GetCacheKeyPurgeHandler deletes the given key from the cache.
