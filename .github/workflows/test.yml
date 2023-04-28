@@ -1,0 +1,40 @@
+name: Test
+
+on:
+  pull_request:
+
+env:
+  GO_VERSION: "1.20"
+
+jobs:
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        golang:
+          - 1.19
+          - "1.20"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go ${{ matrix.golang }}
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.golang }}
+
+      - name: Cache go modules
+        uses: actions/cache@v3
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ matrix.golang }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ matrix.golang }}-
+
+      - name: Run tests
+        run: make test
