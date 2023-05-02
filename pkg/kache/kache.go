@@ -1,8 +1,6 @@
 package kache
 
 import (
-	"net/http"
-
 	"github.com/kacheio/kache/pkg/api"
 	"github.com/kacheio/kache/pkg/provider"
 	"github.com/kacheio/kache/pkg/server"
@@ -17,8 +15,6 @@ type Config struct {
 	API    api.Config    `yaml:"api"`
 	Server server.Config `yaml:"server"`
 	Logger logger.Config `yaml:"logging"`
-
-	// Storage 	storage.Config ´yaml:"storage"´
 }
 
 // Kache is the root data structure for Kache.
@@ -26,7 +22,7 @@ type Kache struct {
 	Cfg Config
 
 	API      *api.API
-	Server   *server.Proxy
+	Server   *server.Server
 	Provider *provider.Provider
 }
 
@@ -55,7 +51,7 @@ func (t *Kache) initAPI() (err error) {
 
 // initServer initializes the core server.
 func (t *Kache) initServer() (err error) {
-	t.Server, err = server.NewProxy(t.Cfg.Server, *t.Provider)
+	t.Server, err = server.NewServer(t.Cfg.Server, *t.Provider)
 	if err != nil {
 		return err
 	}
@@ -104,24 +100,10 @@ func (t *Kache) Run() error {
 
 	// Start API server
 	go func() {
-		t.API.Run()
+		t.API.Run() // move to endpoint in server?
 	}()
 
-	// Start proxy server
-	log.Info().Msg("Starting server on :1337")
-	if err := http.ListenAndServe(":1337", t.Server); err != nil {
-		log.Fatal().Err(err).Msg("starting server")
-	}
-
-	// Start secure server
-	tlsEnabled := false
-	if tlsEnabled {
-		// Start the server with TLS termination
-		log.Info().Msg("Starting server on :443")
-		if err := http.ListenAndServeTLS(":443", "server.crt", "server.key", t.Server); err != nil {
-			log.Fatal().Err(err).Msg("starting secure server")
-		}
-	}
-
+	// Start core proxy server
+	t.Server.Start()
 	return nil
 }

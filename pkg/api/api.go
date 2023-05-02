@@ -47,9 +47,9 @@ func (a *API) Run() {
 }
 
 // RegisterProxy registers the cache HTTP service.
-func (a *API) RegisterProxy(p server.Proxy) {
-	a.server.Get("/api/v1/cache/keys", p.GetCacheKeysHandler)
-	a.server.Get("/api/v1/cache/keys/purge", p.GetCacheKeyPurgeHandler) // /cache/keys/purge?key=....
+func (a *API) RegisterProxy(p server.Server) {
+	a.server.Get("/api/v1/cache/keys", p.CacheKeysHandler)
+	a.server.Get("/api/v1/cache/keys/purge", p.CacheKeyPurgeHandler) // /cache/keys/purge?key=....
 }
 
 type Server struct {
