@@ -16,7 +16,7 @@ import (
 
 // ServeHTTP is the main handler, serving the response
 // from cache, if it exists, or bypassing the request upstream.
-func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Check if the response is already in the cache
 
@@ -25,7 +25,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	cacheKey, _ := cache.NewKeyFromRequst(r)
 	log.Println("Cache Key: ", cacheKey)
 
-	if cached := p.cache.Get(cacheKey.String()); cached != nil {
+	if cached := s.cache.Get(cacheKey.String()); cached != nil {
 
 		log.Println("serving from cache (hit)...")
 		log.Println(cached)
@@ -52,12 +52,12 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r = r.WithContext(ctx)
 
 	// If the response isn't in the cache, forward the request to the backend servers
-	p.proxy.ServeHTTP(w, r)
+	s.proxy.ServeHTTP(w, r)
 }
 
 // modifyResponse modifies the response from the upstream server.
-func (p *Proxy) modifyResponse(res *http.Response) error {
-	log.Println("Upstream response: ", res)
+func (s *Server) modifyResponse(res *http.Response) error {
+	// log.Println("Upstream response: ", res)
 
 	if response, err := httputil.DumpResponse(res, true); err == nil {
 		log.Println("add response to cache")
@@ -67,9 +67,9 @@ func (p *Proxy) modifyResponse(res *http.Response) error {
 			Body:         response,
 			LastModified: time.Now(),
 		}
-		p.cache.Put(cacheKey, entry)
+		s.cache.Put(cacheKey, entry)
 
-		log.Println("response added to cache: ", p.cache.Size(), p.cache)
+		log.Println("response added to cache: ", s.cache.Size(), s.cache)
 	} else {
 		log.Println(err)
 	}
@@ -79,13 +79,13 @@ func (p *Proxy) modifyResponse(res *http.Response) error {
 
 /// Registered API handlers
 
-// GetCacheKeysHandler renders all cache keys in JSON format.
-func (p *Proxy) GetCacheKeysHandler(w http.ResponseWriter, r *http.Request) {
+// CacheKeysHandler renders all cache keys in JSON format.
+func (s *Server) CacheKeysHandler(w http.ResponseWriter, r *http.Request) {
 	// keys := p.cache.Keys()
 
 	keys := []string{}
 
-	it := p.cache.Iterator()
+	it := s.cache.Iterator()
 	for it.HasNext() {
 		keys = append(keys, it.Next().Key().(string))
 	}
@@ -98,10 +98,10 @@ func (p *Proxy) GetCacheKeysHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// GetCacheKeyPurgeHandler deletes the given key from the cache.
-func (p *Proxy) GetCacheKeyPurgeHandler(w http.ResponseWriter, r *http.Request) {
+// CacheKeyPurgeHandler deletes the given key from the cache.
+func (s *Server) CacheKeyPurgeHandler(w http.ResponseWriter, r *http.Request) {
 	key := r.URL.Query().Get("key")
-	if ok := p.cache.Delete(key); !ok {
+	if ok := s.cache.Delete(key); !ok {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
