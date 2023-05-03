@@ -31,9 +31,14 @@ func ExampleInitLogger() {
 	_stderr := os.Stderr
 	os.Stderr = os.Stdout
 
-	zerolog.TimestampFunc = func() time.Time { return time.Unix(0, 0).UTC() }
+	location, _ := time.LoadLocation("UTC")
+	time.Local = location
 
-	/// Test log format
+	zerolog.TimestampFunc = func() time.Time {
+		return time.Unix(0, 0).UTC()
+	}
+
+	// Test log format
 
 	// no config should log console
 	InitLogger(nil)
@@ -51,7 +56,7 @@ func ExampleInitLogger() {
 	InitLogger(&Config{Format: "json"})
 	log.Info().Msg("test json")
 
-	/// Test log level
+	// Test log level
 
 	// info level should not log debug
 	InitLogger(&Config{Level: "info"})
@@ -63,12 +68,12 @@ func ExampleInitLogger() {
 	log.Info().Msg("test level debug")
 
 	// Output:
-	// 1970-01-01T01:00:00+01:00 INF test nil
-	// 1970-01-01T01:00:00+01:00 INF test empty
-	// 1970-01-01T01:00:00+01:00 INF test common
+	// 1970-01-01T00:00:00Z INF test nil
+	// 1970-01-01T00:00:00Z INF test empty
+	// 1970-01-01T00:00:00Z INF test common
 	// {"level":"info","time":"1970-01-01T00:00:00Z","message":"test json"}
-	// 1970-01-01T01:00:00+01:00 INF test level info
-	// 1970-01-01T01:00:00+01:00 INF logger_test.go:63 > test level debug
+	// 1970-01-01T00:00:00Z INF test level info
+	// 1970-01-01T00:00:00Z INF logger_test.go:68 > test level debug
 
 	os.Stderr = _stderr
 }
