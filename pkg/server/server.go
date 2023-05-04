@@ -20,6 +20,7 @@ type Config struct {
 	HTTPAddr string `yaml:"host"`
 	HTTPPort int    `yaml:"http_port"`
 
+	Endpoints Endpoints `yaml:"endpoints"`
 	Upstreams Upstreams `yaml:"upstreams"`
 }
 
@@ -31,6 +32,12 @@ type UpstreamConfig struct {
 	Path string `yaml:"path"`
 }
 
+type Endpoints map[string]*EndpointConfig
+
+type EndpointConfig struct {
+	Addr string `yaml:"addr"`
+}
+
 // Server is the reverse proxy cache.
 type Server struct {
 	cfg Config
@@ -38,7 +45,10 @@ type Server struct {
 	// proxy forwards requests to targets.
 	proxy *httputil.ReverseProxy
 
-	// targets holds the list of upstream targets.
+	// listeners holds the downstream listeners.
+	listeners Listeners
+
+	// targets holds the upstream targets.
 	targets Targets
 
 	// cache holds the provider for storing responses.
@@ -52,12 +62,19 @@ func NewServer(cfg Config, pdr provider.Provider) (*Server, error) {
 		cache: pdr,
 	}
 
-	// Create upstream targets.
+	// Build upstream targets.
 	targets, err := NewTargets(cfg.Upstreams)
 	if err != nil {
 		return nil, err
 	}
 	srv.targets = targets
+
+	// Build downstream listeners.
+	listeners, err := NewListeners(cfg.Endpoints, srv)
+	if err != nil {
+		return nil, err
+	}
+	srv.listeners = listeners
 
 	// Create the reverse proxy.
 	proxy := &httputil.ReverseProxy{
@@ -110,11 +127,14 @@ func (s *Server) Director(req *http.Request) {
 
 // Start starts the server.
 func (s *Server) Start() {
-	// Start proxy server
-	log.Info().Msg("Starting server on :1337")
-	if err := http.ListenAndServe(":1337", s); err != nil {
-		log.Fatal().Err(err).Msg("starting server")
-	}
+	log.Info().Msg("Starting server ...")
+	s.listeners.Start()
+}
+
+// Stop stops the server.
+func (s *Server) Stop() {
+	log.Info().Msg("Stopping server ...")
+	s.listeners.Stop()
 }
 
 func singleJoiningSlash(a, b string) string {
