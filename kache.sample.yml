@@ -49,6 +49,14 @@ server:
       addr: http://localhost:8000
     - name: backend2
       addr: http://localhost:8000
+
+  endpoints:
+    web1:
+      addr: :1337
+
+    web2:
+      addr: localhost:6969
+      
 ################################################################
 # Cluster configuration
 ################################################################
