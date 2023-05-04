@@ -8,6 +8,7 @@ import (
 
 	"github.com/kacheio/kache/pkg/provider"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestProxyNoHost(t *testing.T) {
@@ -131,17 +132,13 @@ func TestProxyMultiListener(t *testing.T) {
 	cache, _ := provider.NewSimpleCache(nil)
 	proxy, _ := NewServer(config, cache)
 	proxy.Start()
-	// defer close
-
-	client := &http.Client{}
+	defer proxy.Stop()
 
 	// Run tests.
 
 	// Dial :1337
-	resp, err := client.Get("http://localhost:1337")
-	if err != nil {
-		t.Errorf("Error: %v", err)
-	}
+	resp, err := http.Get("http://localhost:1337")
+	require.NoError(t, err)
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -150,10 +147,8 @@ func TestProxyMultiListener(t *testing.T) {
 	assert.Equal(t, "Test Server", string(body))
 
 	// Dial :1338
-	resp, err = client.Get("http://localhost:1338")
-	if err != nil {
-		t.Errorf("Error: %v", err)
-	}
+	resp, err = http.Get("http://localhost:1338")
+	require.NoError(t, err)
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -162,6 +157,6 @@ func TestProxyMultiListener(t *testing.T) {
 	assert.Equal(t, "Test Server", string(body))
 
 	// Dial :4242 (not exposed)
-	_, err = client.Get("http://localhost:4242")
+	_, err = http.Get("http://localhost:4242")
 	assert.Error(t, err)
 }
