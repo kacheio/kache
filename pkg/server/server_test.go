@@ -1,6 +1,7 @@
 package server
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -21,7 +22,7 @@ func TestProxyNoHost(t *testing.T) {
 
 	config := Config{
 		Upstreams: []*UpstreamConfig{
-			//  {"test", testServer.URL, ""},
+			// {"test", testServer.URL, ""},
 		},
 	}
 	cache, _ := provider.NewSimpleCache(nil)
@@ -35,6 +36,7 @@ func TestProxyNoHost(t *testing.T) {
 	assert.HTTPStatusCode(t, proxy.ServeHTTP, "GET", proxyServer.URL, nil, 502)
 	assert.HTTPBodyContains(t, proxy.ServeHTTP, "GET", proxyServer.URL, nil, "no matching target found")
 }
+
 func TestProxySingleHost(t *testing.T) {
 	// Setup test server.
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -105,36 +107,61 @@ func TestProxyMultiHost(t *testing.T) {
 	assert.HTTPBodyContains(t, proxy.ServeHTTP, "GET", proxyServer.URL+"/bot", nil, "Test Server 1")
 	assert.HTTPBodyContains(t, proxy.ServeHTTP, "GET", proxyServer.URL+"/api", nil, "Test Server 3")
 	assert.HTTPBodyContains(t, proxy.ServeHTTP, "GET", proxyServer.URL+"/api/test", nil, "Test Server 2")
-
-	// proxyURL, _ := url.Parse(proxyServer.URL)
-
-	// // Create a test HTTP client that uses the proxy
-	// testClient := &http.Client{
-	// 	Transport: &http.Transport{
-	// 		Proxy: http.ProxyURL(proxyURL),
-	// 	},
-	// }
-
-	// // testClient := &http.Client{}
-
-	// // Make a request through the proxy
-	// resp, err := testClient.Get(proxyServer.URL + "/epi/test")
-	// if err != nil {
-	// 	t.Errorf("Error: %v", err)
-	// }
-	// defer resp.Body.Close()
-
-	// // Check if the response status code is 200 OK
-	// if resp.StatusCode != http.StatusOK {
-	// 	t.Errorf("Expected status code %d, got %d", http.StatusOK, resp.StatusCode)
-	// }
-
-	// // Check if the response body is correct
-	// expectedBody := "Test Server"
-	// body, _ := io.ReadAll(resp.Body)
-	// if string(body) != expectedBody {
-	// 	t.Errorf("Expected body %q, got %q", expectedBody, string(body))
-	// }
 }
 
-// TestMultiListener
+func TestProxyMultiListener(t *testing.T) {
+	// Setup test server.
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("Test Server"))
+	}))
+	defer testServer.Close()
+
+	// Setup proxy server.
+
+	config := Config{
+		Upstreams: []*UpstreamConfig{
+			{"Backend", testServer.URL, "/"},
+		},
+		Endpoints: map[string]*EndpointConfig{
+			"ep1": {":1337"},
+			"ep2": {":1338"},
+		},
+	}
+	cache, _ := provider.NewSimpleCache(nil)
+	proxy, _ := NewServer(config, cache)
+	proxy.Start()
+	// defer close
+
+	client := &http.Client{}
+
+	// Run tests.
+
+	// Dial :1337
+	resp, err := client.Get("http://localhost:1337")
+	if err != nil {
+		t.Errorf("Error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	body, _ := io.ReadAll(resp.Body)
+	assert.Equal(t, "Test Server", string(body))
+
+	// Dial :1338
+	resp, err = client.Get("http://localhost:1338")
+	if err != nil {
+		t.Errorf("Error: %v", err)
+	}
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	body, _ = io.ReadAll(resp.Body)
+	assert.Equal(t, "Test Server", string(body))
+
+	// Dial :4242 (not exposed)
+	_, err = client.Get("http://localhost:4242")
+	assert.Error(t, err)
+}
