@@ -1,6 +1,9 @@
 package kache
 
 import (
+	"os"
+	"os/signal"
+
 	"github.com/kacheio/kache/pkg/api"
 	"github.com/kacheio/kache/pkg/provider"
 	"github.com/kacheio/kache/pkg/server"
@@ -105,5 +108,13 @@ func (t *Kache) Run() error {
 
 	// Start core proxy server
 	t.Server.Start()
+
+	// Shutdown on interrupt.
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+
+	// Wait for signal.
+	<-c
+
 	return nil
 }
