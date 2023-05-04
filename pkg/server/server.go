@@ -127,9 +127,14 @@ func (s *Server) Director(req *http.Request) {
 
 // Start starts the server.
 func (s *Server) Start() {
-	// Start proxy server
 	log.Info().Msg("Starting server ...")
 	s.listeners.Start()
+}
+
+// Stop stops the server.
+func (s *Server) Stop() {
+	log.Info().Msg("Stopping server ...")
+	s.listeners.Stop()
 }
 
 func singleJoiningSlash(a, b string) string {

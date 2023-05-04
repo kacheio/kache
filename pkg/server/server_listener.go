@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -17,10 +18,10 @@ type Listeners map[string]*Listener
 // NewListeners creates new listeners.
 func NewListeners(config Endpoints, handler http.Handler) (Listeners, error) {
 	listeners := make(Listeners)
-	for name, ep := range config {
+	for name, endpoint := range config {
 		ctx := log.With().Str("listenerName", name).Logger().WithContext(context.Background())
 
-		l, err := NewListener(ctx, ep, handler)
+		l, err := NewListener(ctx, endpoint, handler)
 		if err != nil {
 			return nil, err
 		}
@@ -40,7 +41,22 @@ func (ls Listeners) Start() {
 
 // Stops stops the server listeners.
 func (ls Listeners) Stop() {
-	// TODO
+	var wg sync.WaitGroup
+
+	for name, listener := range ls {
+		wg.Add(1)
+
+		go func(listenerName string, listener *Listener) {
+			defer wg.Done()
+
+			logger := log.With().Str("listenerName", listenerName).Logger()
+			listener.Shutdown(logger.WithContext(context.Background()))
+
+			logger.Debug().Msg("Listener stopped")
+		}(name, listener)
+	}
+
+	wg.Wait()
 }
 
 // Listener is the Listen server.
@@ -76,11 +92,46 @@ func (l *Listener) Start(ctx context.Context) {
 	logger.Debug().Msgf("Start listening on %v", l.listener.Addr())
 	err := l.httpServer.Serve(l.listener)
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		logger.Error().Err(err).Msg("error while starting the listener server")
+		logger.Error().Err(err).Msg("Error while starting the listener server")
 	}
 }
 
 // Shutdown stops the listener.
 func (l *Listener) Shutdown(ctx context.Context) {
-	// TODO
+	logger := log.Ctx(ctx)
+
+	timeout := 5 * time.Second
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	logger.Debug().Msgf("Waiting %s seconds before closing listeners", timeout)
+
+	var wg sync.WaitGroup
+
+	shutdown := func(server *http.Server) {
+		defer wg.Done()
+
+		err := server.Shutdown(ctx)
+		if err == nil {
+			return
+		}
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			logger.Debug().Err(err).Msg("Timout exceeded while closing listener server")
+			if err = server.Close(); err != nil {
+				logger.Error().Err(err).Send()
+			}
+			return
+		}
+		logger.Error().Err(err).Msg("Failed to shut down listener server")
+
+		if err = server.Close(); err != nil {
+			logger.Error().Err(err).Send()
+		}
+	}
+
+	if l.httpServer != nil {
+		wg.Add(1)
+		go shutdown(l.httpServer)
+	}
+
+	wg.Wait()
+	cancel()
 }

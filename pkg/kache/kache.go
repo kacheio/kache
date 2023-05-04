@@ -100,7 +100,6 @@ func (t *Kache) setupModules() error {
 
 // Run starts the Kache and its services.
 func (t *Kache) Run() error {
-
 	// Start API server
 	go func() {
 		t.API.Run() // move to endpoint in server?
@@ -108,6 +107,7 @@ func (t *Kache) Run() error {
 
 	// Start core proxy server
 	t.Server.Start()
+	defer t.Server.Stop()
 
 	// Shutdown on interrupt.
 	c := make(chan os.Signal, 1)
