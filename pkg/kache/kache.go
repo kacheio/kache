@@ -1,8 +1,9 @@
 package kache
 
 import (
-	"os"
+	"context"
 	"os/signal"
+	"syscall"
 
 	"github.com/kacheio/kache/pkg/api"
 	"github.com/kacheio/kache/pkg/provider"
@@ -78,9 +79,7 @@ func (t *Kache) initProvider() error {
 
 // setupModules initializes the modules.
 func (t *Kache) setupModules() error {
-	// Register and setup all modules here.
-
-	// RegisterModule(name string, initFn func() error)
+	// Register module init functions
 	type initFn func() error
 	modules := map[string]initFn{
 		"API":      t.initAPI,
@@ -102,19 +101,21 @@ func (t *Kache) setupModules() error {
 func (t *Kache) Run() error {
 	// Start API server
 	go func() {
-		t.API.Run() // move to endpoint in server?
+		t.API.Run()
 	}()
 
-	// Start core proxy server
-	t.Server.Start()
-	defer t.Server.Stop()
+	// Setup signals to gracefully shutdown in response to SIGTERM or SIGINT
+	ctx, _ := signal.NotifyContext(context.Background(),
+		syscall.SIGINT, syscall.SIGTERM,
+	)
 
-	// Shutdown on interrupt.
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
+	// Start core server
+	t.Server.Start(ctx)
+	defer t.Server.Shutdown()
 
-	// Wait for signal.
-	<-c
+	// Wait until shutdown signal received
+	t.Server.Await()
 
+	log.Info().Msg("Shutting down")
 	return nil
 }
