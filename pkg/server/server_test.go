@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -131,7 +132,7 @@ func TestProxyMultiListener(t *testing.T) {
 	}
 	cache, _ := provider.NewSimpleCache(nil)
 	proxy, _ := NewServer(config, cache)
-	proxy.Start()
+	proxy.Start(context.Background())
 	defer proxy.Stop()
 
 	// Run tests.

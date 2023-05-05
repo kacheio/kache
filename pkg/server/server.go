@@ -8,12 +8,19 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"strings"
+	"time"
 
 	"github.com/kacheio/kache/pkg/provider"
 	"github.com/rs/zerolog/log"
 )
 
+const (
+	ServerGracefulShutdownTimeout = 5 * time.Second
+)
+
 type ctxCacheKey struct{}
+
+var ErrMatchingTarget = fmt.Errorf("no matching target found")
 
 // Config holds the server configuration.
 type Config struct {
@@ -53,13 +60,16 @@ type Server struct {
 
 	// cache holds the provider for storing responses.
 	cache provider.Provider
+
+	stopCh chan bool
 }
 
 // NewServer creates a new configured server.
 func NewServer(cfg Config, pdr provider.Provider) (*Server, error) {
 	srv := &Server{
-		cfg:   cfg,
-		cache: pdr,
+		cfg:    cfg,
+		cache:  pdr,
+		stopCh: make(chan bool, 1),
 	}
 
 	// Build upstream targets.
@@ -101,8 +111,6 @@ func NewServer(cfg Config, pdr provider.Provider) (*Server, error) {
 	return srv, nil
 }
 
-var ErrMatchingTarget = fmt.Errorf("no matching target found")
-
 // Director matches the incoming request to a specific target and sets
 // the request object to be sent to the matched upstream server.
 func (s *Server) Director(req *http.Request) {
@@ -126,15 +134,50 @@ func (s *Server) Director(req *http.Request) {
 }
 
 // Start starts the server.
-func (s *Server) Start() {
+func (s *Server) Start(ctx context.Context) {
+	go func() {
+		<-ctx.Done()
+		logger := log.Ctx(ctx)
+		logger.Info().Msg("Received shutdown...")
+		logger.Info().Msg("Stopping server gracefully")
+		s.Stop()
+	}()
+
 	log.Info().Msg("Starting server ...")
+
 	s.listeners.Start()
+}
+
+// Await blocks until SIGTERM or Stop() is called.
+func (s *Server) Await() {
+	<-s.stopCh
 }
 
 // Stop stops the server.
 func (s *Server) Stop() {
-	log.Info().Msg("Stopping server ...")
+	defer log.Info().Msg("Server stopped")
+
 	s.listeners.Stop()
+
+	s.stopCh <- true
+}
+
+// Shutdown the server, gracefully. Should be defered after Start().
+func (s *Server) Shutdown() {
+	ctx, cancel := context.WithTimeout(context.Background(), ServerGracefulShutdownTimeout)
+	defer cancel()
+
+	go func(ctx context.Context) {
+		<-ctx.Done()
+		if errors.Is(ctx.Err(), context.Canceled) {
+			return
+		}
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			panic("Shutdown timeout exeeded, killing kache instance")
+		}
+	}(ctx)
+
+	close(s.stopCh)
 }
 
 func singleJoiningSlash(a, b string) string {
