@@ -1,0 +1,56 @@
+project_name: kache
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - main: ./cmd/kache/
+    binary: kache
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - "386"
+      - arm
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+
+archives:
+  - id: kache
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE
+
+checksum:
+  name_template: "{{ .ProjectName }}{{ .Version }}_checksums.txt"
+  algorithm: sha256
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-SNAPSHOT-{{.ShortCommit}}"
+
+changelog:
+  skip: true
+
+release:
+  disable: true
+
+announce:
+  skip: true

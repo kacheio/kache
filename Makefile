@@ -2,10 +2,16 @@ SHELL = /usr/bin/env bash
 
 SRCS = $(shell git ls-files '*.go' | grep -v '^vendor/')
 
-.PHONY: all lint format test test-with-race mod mod-check mod-vendor clean run
+TAG := $(shell git tag -l --contains HEAD)
+SHA := $(shell git rev-parse --short HEAD)
+GIT := $(if $(TAG),$(TAG),$(SHA))
+VERSION := $(if $(VERSION),$(VERSION),$(GIT))
+
+TEST_TIMEOUT := 20m 
 
 COLOR := "\e[1;36m%s\e[0m\n"
-TEST_TIMEOUT := 20m 
+
+.PHONY: all lint format test test-with-race mod mod-check mod-vendor clean release snap-release run
 
 lint: ## Run linters.
 	@printf $(COLOR) "Run linters..."
@@ -33,6 +39,16 @@ mod-vendor: ## Vendor modules.
 
 clean: ## Clean test results.
 	go clean -testcache
+
+release: ## Make release.
+	goreleaser release --skip-publish
+	tar cfz dist/kache-${VERSION}.src.tar.gz \
+		--exclude-vcs \
+		--exclude dist \
+		--exclude .github .
+		
+snap-release: ## Make snapshot release.
+	goreleaser release --snapshot --clean --skip-publish
 
 run: ## Run dev.
 	go run cmd/kache/main.go -config.file kache.yml

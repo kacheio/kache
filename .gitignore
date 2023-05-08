@@ -25,3 +25,4 @@ logs/
 
 # Local config files
 /kache.yml
+dist/
