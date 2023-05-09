@@ -46,16 +46,15 @@ api:
 server:
   upstreams:
     - name: backend1
-      addr: http://localhost:8000
+      addr: http://example.com
     - name: backend2
-      addr: http://localhost:8000
+      addr: https://example.com
 
   endpoints:
     web1:
-      addr: :1337
-
+      addr: :80
     web2:
-      addr: localhost:6969
+      addr: :1337
       
 ################################################################
 # Cluster configuration
