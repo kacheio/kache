@@ -13,8 +13,9 @@ RUN go build -ldflags=-X=main.version=${VERSION} -o bin/kache cmd/kache/main.go
 FROM golang:latest
 
 COPY --from=builder /go/src/github.com/kacheio/kache/bin/kache .
-COPY --from=builder /go/src/github.com/kacheio/kache/kache.yml .
+COPY --from=builder /go/src/github.com/kacheio/kache/kache.sample.yml .
 
 EXPOSE 80
 
-ENTRYPOINT ["./kache", "-config.file=kache.yml"]
+ENTRYPOINT ["./kache"]
+CMD ["-config.file=kache.sample.yml"]
