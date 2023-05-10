@@ -5,6 +5,8 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"strings"
@@ -94,21 +96,48 @@ func NewServer(cfg Config, pdr provider.Provider) (*Server, error) {
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
 		ModifyResponse: srv.modifyResponse,
-		ErrorHandler: func(w http.ResponseWriter, req *http.Request, err error) {
-			if errors.Is(err, context.Canceled) {
-		ctx := req.Context()
-				err := context.Cause(ctx)
-				if errors.Is(err, ErrMatchingTarget) {
-					w.WriteHeader(http.StatusBadGateway)
-					_, _ = w.Write([]byte(err.Error()))
-					return
-		}
-		}
-		},
-		}
+		ErrorHandler:   errorHandler,
+	}
 	srv.proxy = proxy
 
 	return srv, nil
+}
+
+// errorHandler is the proxy error handler.
+func errorHandler(w http.ResponseWriter, req *http.Request, err error) {
+	status := http.StatusInternalServerError
+
+	switch {
+	case errors.Is(err, context.Canceled):
+		ctx := req.Context()
+		cErr := context.Cause(ctx)
+		if errors.Is(cErr, ErrMatchingTarget) {
+			status = http.StatusServiceUnavailable
+			err = cErr
+		} else { // client canceled request
+			status = http.StatusBadGateway
+		}
+	case errors.Is(err, io.EOF):
+		status = http.StatusBadGateway
+	default: // connection error
+		var netErr net.Error
+		if errors.As(err, &netErr) && netErr.Timeout() {
+			status = http.StatusGatewayTimeout
+		}
+		var opErr *net.OpError
+		if errors.As(err, &opErr) {
+			// unknown host or connection refused
+			status = http.StatusServiceUnavailable
+		}
+	}
+
+	logger := log.Ctx(req.Context())
+	logger.Debug().Err(err).Msgf("Proxy error: status %d - %s", status, err.Error())
+
+	w.WriteHeader(status)
+	if _, wErr := w.Write([]byte(err.Error())); wErr != nil {
+		logger.Debug().Err(wErr).Msg("Error writing error")
+	}
 }
 
 // Director matches the incoming request to a specific target and sets

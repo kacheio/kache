@@ -35,7 +35,7 @@ func TestProxyNoHost(t *testing.T) {
 	// Run tests.
 
 	assert.HTTPError(t, proxy.ServeHTTP, "GET", proxyServer.URL, nil)
-	assert.HTTPStatusCode(t, proxy.ServeHTTP, "GET", proxyServer.URL, nil, 502)
+	assert.HTTPStatusCode(t, proxy.ServeHTTP, "GET", proxyServer.URL, nil, 503)
 	assert.HTTPBodyContains(t, proxy.ServeHTTP, "GET", proxyServer.URL, nil, "no matching target found")
 }
 
