@@ -88,7 +88,7 @@ func NewServer(cfg Config, pdr provider.Provider) (*Server, error) {
 
 	// Create the reverse proxy.
 	proxy := &httputil.ReverseProxy{
-		Director: srv.Director,
+		Director: srv.Director(),
 		Transport: &http.Transport{
 			// Disable SSL verification for self-signed certificates
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -96,16 +96,16 @@ func NewServer(cfg Config, pdr provider.Provider) (*Server, error) {
 		ModifyResponse: srv.modifyResponse,
 		ErrorHandler: func(w http.ResponseWriter, req *http.Request, err error) {
 			if errors.Is(err, context.Canceled) {
-				ctx := req.Context()
+		ctx := req.Context()
 				err := context.Cause(ctx)
 				if errors.Is(err, ErrMatchingTarget) {
 					w.WriteHeader(http.StatusBadGateway)
 					_, _ = w.Write([]byte(err.Error()))
 					return
-				}
-			}
+		}
+		}
 		},
-	}
+		}
 	srv.proxy = proxy
 
 	return srv, nil
@@ -113,23 +113,33 @@ func NewServer(cfg Config, pdr provider.Provider) (*Server, error) {
 
 // Director matches the incoming request to a specific target and sets
 // the request object to be sent to the matched upstream server.
-func (s *Server) Director(req *http.Request) {
-	// Find a matching target.
-	target, ok := s.targets.MatchTarget(req)
-	if !ok {
-		log.Error().Str("request", req.URL.String()).Msg("no matching target found for request.")
-		ctx, cancel := context.WithCancelCause(req.Context())
-		*req = *req.WithContext(ctx)
-		cancel(ErrMatchingTarget)
-		return
-	}
-	upstream := target.upstream
+func (s *Server) Director() func(req *http.Request) {
+	return func(req *http.Request) {
+		// Find a matching target.
+		target, ok := s.targets.MatchTarget(req)
+		if !ok {
+			log.Error().Str("request", req.URL.String()).Msg("no matching target found for request.")
+			ctx, cancel := context.WithCancelCause(req.Context())
+			*req = *req.WithContext(ctx)
+			cancel(ErrMatchingTarget)
+			return
+		}
+		upstream := target.upstream
 
-	req.URL.Scheme = upstream.Scheme
-	req.URL.Host = upstream.Host
-	req.URL.Path = singleJoiningSlash(upstream.Path, req.URL.Path)
-	if _, ok := req.Header["User-Agent"]; !ok {
-		req.Header.Set("User-Agent", "kache")
+		req.URL.Scheme = upstream.Scheme
+		req.URL.Host = upstream.Host
+
+		req.URL.Path = singleJoiningSlash(upstream.Path, req.URL.Path)
+
+		// Pass host header
+		req.Host = req.URL.Host
+
+		// RequestURI should not be set in a HTTP client request
+		req.RequestURI = ""
+
+		if _, ok := req.Header["User-Agent"]; !ok {
+			req.Header.Set("User-Agent", "kache")
+		}
 	}
 }
 
