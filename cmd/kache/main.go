@@ -14,6 +14,7 @@ import (
 
 const (
 	configFileOption = "config.file"
+	configFileName   = "kache.yml"
 )
 
 func main() {
@@ -27,7 +28,7 @@ func main() {
 	// Load config file.
 	var configFile string
 
-	flag.StringVar(&configFile, configFileOption, configFileOption, "")
+	flag.StringVar(&configFile, configFileOption, configFileName, "")
 	flag.Parse()
 
 	if configFile != "" {
