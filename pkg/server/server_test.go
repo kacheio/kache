@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/kacheio/kache/pkg/config"
 	"github.com/kacheio/kache/pkg/provider"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,13 +23,13 @@ func TestProxyNoHost(t *testing.T) {
 
 	// Setup proxy server.
 
-	config := Config{
-		Upstreams: []*UpstreamConfig{
+	cfg := config.Configuration{
+		Upstreams: []*config.UpstreamConfig{
 			// {"test", testServer.URL, ""},
 		},
 	}
 	cache, _ := provider.NewSimpleCache(nil)
-	proxy, _ := NewServer(config, cache)
+	proxy, _ := NewServer(cfg, cache)
 	proxyServer := httptest.NewServer(proxy)
 	defer proxyServer.Close()
 
@@ -49,13 +50,13 @@ func TestProxySingleHost(t *testing.T) {
 
 	// Setup proxy server.
 
-	config := Config{
-		Upstreams: []*UpstreamConfig{
-			{"test", testServer.URL, ""},
+	cfg := config.Configuration{
+		Upstreams: []*config.UpstreamConfig{
+			{Name: "test", Addr: testServer.URL, Path: ""},
 		},
 	}
 	cache, _ := provider.NewSimpleCache(nil)
-	proxy, _ := NewServer(config, cache)
+	proxy, _ := NewServer(cfg, cache)
 	proxyServer := httptest.NewServer(proxy)
 	defer proxyServer.Close()
 
@@ -88,15 +89,15 @@ func TestProxyMultiHost(t *testing.T) {
 
 	// Setup proxy server.
 
-	config := Config{
-		Upstreams: []*UpstreamConfig{
-			{"test 1", testServer1.URL, "/bot"},
-			{"test 2", testServer2.URL, "/api/test"},
-			{"test 3", testServer3.URL, "/api"},
+	cfg := config.Configuration{
+		Upstreams: []*config.UpstreamConfig{
+			{Name: "test 1", Addr: testServer1.URL, Path: "/bot"},
+			{Name: "test 2", Addr: testServer2.URL, Path: "/api/test"},
+			{Name: "test 3", Addr: testServer3.URL, Path: "/api"},
 		},
 	}
 	cache, _ := provider.NewSimpleCache(nil)
-	proxy, _ := NewServer(config, cache)
+	proxy, _ := NewServer(cfg, cache)
 	proxyServer := httptest.NewServer(proxy)
 	defer proxyServer.Close()
 
@@ -121,17 +122,17 @@ func TestProxyMultiListener(t *testing.T) {
 
 	// Setup proxy server.
 
-	config := Config{
-		Upstreams: []*UpstreamConfig{
-			{"Backend", testServer.URL, "/"},
+	cfg := config.Configuration{
+		Upstreams: []*config.UpstreamConfig{
+			{Name: "Backend", Addr: testServer.URL, Path: "/"},
 		},
-		Endpoints: map[string]*EndpointConfig{
-			"ep1": {":1337"},
-			"ep2": {":1338"},
+		Endpoints: map[string]*config.EndpointConfig{
+			"ep1": {Addr: ":1337"},
+			"ep2": {Addr: ":1338"},
 		},
 	}
 	cache, _ := provider.NewSimpleCache(nil)
-	proxy, _ := NewServer(config, cache)
+	proxy, _ := NewServer(cfg, cache)
 	proxy.Start(context.Background())
 	defer proxy.Stop()
 

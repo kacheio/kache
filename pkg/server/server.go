@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kacheio/kache/pkg/config"
 	"github.com/kacheio/kache/pkg/provider"
 	"github.com/rs/zerolog/log"
 )
@@ -24,32 +25,9 @@ type ctxCacheKey struct{}
 
 var ErrMatchingTarget = fmt.Errorf("no matching target found")
 
-// Config holds the server configuration.
-type Config struct {
-	HTTPAddr string `yaml:"host"`
-	HTTPPort int    `yaml:"http_port"`
-
-	Endpoints Endpoints `yaml:"endpoints"`
-	Upstreams Upstreams `yaml:"upstreams"`
-}
-
-type Upstreams []*UpstreamConfig
-
-type UpstreamConfig struct {
-	Name string `yaml:"name"`
-	Addr string `yaml:"addr"`
-	Path string `yaml:"path"`
-}
-
-type Endpoints map[string]*EndpointConfig
-
-type EndpointConfig struct {
-	Addr string `yaml:"addr"`
-}
-
 // Server is the reverse proxy cache.
 type Server struct {
-	cfg Config
+	cfg config.Configuration
 
 	// proxy forwards requests to targets.
 	proxy *httputil.ReverseProxy
@@ -67,7 +45,7 @@ type Server struct {
 }
 
 // NewServer creates a new configured server.
-func NewServer(cfg Config, pdr provider.Provider) (*Server, error) {
+func NewServer(cfg config.Configuration, pdr provider.Provider) (*Server, error) {
 	srv := &Server{
 		cfg:    cfg,
 		cache:  pdr,

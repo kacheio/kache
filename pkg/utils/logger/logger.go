@@ -7,22 +7,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kacheio/kache/pkg/config"
 	"github.com/natefinch/lumberjack"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
-
-// Config holds the configuration for the logger.
-type Config struct {
-	Level  string `yaml:"level,omitempty"`
-	Format string `yaml:"format,omitempty"`
-
-	FilePath   string `yaml:"filePath,omitempty"`
-	MaxSize    int    `yaml:"maxSize,omitempty"`
-	MaxAge     int    `yaml:"maxAge,omitempty"`
-	MaxBackups int    `yaml:"maxBackups,omitempty"`
-	Compress   bool   `yaml:"compress,omitempty"`
-}
 
 func init() {
 	// Supress logs before setup.
@@ -30,13 +19,13 @@ func init() {
 }
 
 // InitLogger initializes the logger.
-func InitLogger(config *Config) {
+func InitLogger(cfg *config.Log) {
 
 	// configure log format
-	format := initFormat(config)
+	format := initFormat(cfg)
 
 	// configure log level
-	level := initLevel(config)
+	level := initLevel(cfg)
 
 	// create logger
 	ctx := zerolog.New(format).With().Timestamp()
@@ -55,22 +44,22 @@ func InitLogger(config *Config) {
 
 // initFormat initializes the log format from
 // config, returns a writer.
-func initFormat(config *Config) io.Writer {
+func initFormat(cfg *config.Log) io.Writer {
 	var w io.Writer = os.Stderr
 
-	if config != nil && config.FilePath != "" {
+	if cfg != nil && cfg.FilePath != "" {
 		// write logs to rolling files
-		_, _ = os.Create(config.FilePath)
+		_, _ = os.Create(cfg.FilePath)
 		w = &lumberjack.Logger{
-			Filename:   config.FilePath,
-			MaxSize:    config.MaxSize,
-			MaxBackups: config.MaxBackups,
-			MaxAge:     config.MaxAge,
+			Filename:   cfg.FilePath,
+			MaxSize:    cfg.MaxSize,
+			MaxBackups: cfg.MaxBackups,
+			MaxAge:     cfg.MaxAge,
 			Compress:   true,
 		}
 	}
 
-	if config == nil || config.Format != "json" {
+	if cfg == nil || cfg.Format != "json" {
 		// write logs to console
 		w = zerolog.ConsoleWriter{
 			Out:        w,
@@ -83,11 +72,11 @@ func initFormat(config *Config) io.Writer {
 }
 
 // initLevel initializes the log level from config.
-func initLevel(config *Config) zerolog.Level {
+func initLevel(cfg *config.Log) zerolog.Level {
 	level := "info"
 
-	if config != nil && config.Level != "" {
-		level = strings.ToLower(config.Level)
+	if cfg != nil && cfg.Level != "" {
+		level = strings.ToLower(cfg.Level)
 	}
 
 	logLevel, err := zerolog.ParseLevel(level)

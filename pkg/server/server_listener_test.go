@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kacheio/kache/pkg/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,7 +20,7 @@ func TestNewListener(t *testing.T) {
 		_, _ = w.Write([]byte("Test Server"))
 	})
 
-	listener, err := NewListener(context.Background(), &EndpointConfig{
+	listener, err := NewListener(context.Background(), &config.EndpointConfig{
 		Addr: ":1337",
 	}, handler)
 	require.NoError(t, err)
@@ -43,7 +44,7 @@ func TestShutdown(t *testing.T) {
 		_, _ = w.Write([]byte("Test Server"))
 	})
 
-	ln, err := NewListener(context.Background(), &EndpointConfig{
+	ln, err := NewListener(context.Background(), &config.EndpointConfig{
 		Addr: ":1337",
 	}, handler)
 	require.NoError(t, err)

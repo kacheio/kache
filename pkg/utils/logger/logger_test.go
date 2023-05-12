@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kacheio/kache/pkg/config"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -45,26 +46,26 @@ func ExampleInitLogger() {
 	log.Info().Msg("test nil")
 
 	// empty format should log console
-	InitLogger(&Config{Format: ""})
+	InitLogger(&config.Log{Format: ""})
 	log.Info().Msg("test empty")
 
 	// common format should log console
-	InitLogger(&Config{Format: "common"})
+	InitLogger(&config.Log{Format: "common"})
 	log.Info().Msg("test common")
 
 	// json format should log json
-	InitLogger(&Config{Format: "json"})
+	InitLogger(&config.Log{Format: "json"})
 	log.Info().Msg("test json")
 
 	// Test log level
 
 	// info level should not log debug
-	InitLogger(&Config{Level: "info"})
+	InitLogger(&config.Log{Level: "info"})
 	log.Info().Msg("test level info")
 	log.Debug().Msg("test level info -- ignored")
 
 	// debug level should add caller
-	InitLogger(&Config{Level: "debug"})
+	InitLogger(&config.Log{Level: "debug"})
 	log.Info().Msg("test level debug")
 
 	// Output:
@@ -73,7 +74,7 @@ func ExampleInitLogger() {
 	// 1970-01-01T00:00:00Z INF test common
 	// {"level":"info","time":"1970-01-01T00:00:00Z","message":"test json"}
 	// 1970-01-01T00:00:00Z INF test level info
-	// 1970-01-01T00:00:00Z INF logger_test.go:68 > test level debug
+	// 1970-01-01T00:00:00Z INF logger_test.go:69 > test level debug
 
 	os.Stderr = _stderr
 }

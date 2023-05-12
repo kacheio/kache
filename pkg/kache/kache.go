@@ -6,24 +6,15 @@ import (
 	"syscall"
 
 	"github.com/kacheio/kache/pkg/api"
+	"github.com/kacheio/kache/pkg/config"
 	"github.com/kacheio/kache/pkg/provider"
 	"github.com/kacheio/kache/pkg/server"
-	"github.com/kacheio/kache/pkg/utils/logger"
 	"github.com/rs/zerolog/log"
 )
 
-// Config is the root config for kache.
-type Config struct {
-	ApplicationName string `yaml:"-"`
-
-	API    api.Config    `yaml:"api"`
-	Server server.Config `yaml:"server"`
-	Logger logger.Config `yaml:"logging"`
-}
-
 // Kache is the root data structure for Kache.
 type Kache struct {
-	Cfg Config
+	Cfg config.Configuration
 
 	API      *api.API
 	Server   *server.Server
@@ -31,7 +22,7 @@ type Kache struct {
 }
 
 // New makes a new Kache.
-func New(cfg Config) (*Kache, error) {
+func New(cfg config.Configuration) (*Kache, error) {
 	kache := &Kache{
 		Cfg: cfg,
 	}
@@ -55,7 +46,7 @@ func (t *Kache) initAPI() (err error) {
 
 // initServer initializes the core server.
 func (t *Kache) initServer() (err error) {
-	t.Server, err = server.NewServer(t.Cfg.Server, *t.Provider)
+	t.Server, err = server.NewServer(t.Cfg, *t.Provider)
 	if err != nil {
 		return err
 	}
