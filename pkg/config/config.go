@@ -51,10 +51,10 @@ func (l Listeners) Validate() error {
 }
 
 // Upstreams holds the upstream configs.
-type Upstreams []*UpstreamConfig
+type Upstreams []*Upstream
 
-// UpstreamConfig holds the upstream target config.
-type UpstreamConfig struct {
+// Upstream holds the upstream target config.
+type Upstream struct {
 	Name string `yaml:"name"`
 	Addr string `yaml:"addr"`
 	Path string `yaml:"path"`

@@ -44,7 +44,7 @@ type Target struct {
 }
 
 // NewTarget creates a new upstream target.
-func NewTarget(cfg *config.UpstreamConfig) (*Target, error) {
+func NewTarget(cfg *config.Upstream) (*Target, error) {
 	u, err := url.Parse(cfg.Addr)
 	if err != nil {
 		return nil, err
