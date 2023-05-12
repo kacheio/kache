@@ -60,7 +60,7 @@ func NewServer(cfg config.Configuration, pdr provider.Provider) (*Server, error)
 	srv.targets = targets
 
 	// Build downstream listeners.
-	listeners, err := NewListeners(cfg.Endpoints, srv)
+	listeners, err := NewListeners(cfg.Listeners, srv)
 	if err != nil {
 		return nil, err
 	}

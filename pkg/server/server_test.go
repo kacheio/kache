@@ -126,7 +126,7 @@ func TestProxyMultiListener(t *testing.T) {
 		Upstreams: []*config.UpstreamConfig{
 			{Name: "Backend", Addr: testServer.URL, Path: "/"},
 		},
-		Endpoints: map[string]*config.EndpointConfig{
+		Listeners: map[string]*config.Listener{
 			"ep1": {Addr: ":1337"},
 			"ep2": {Addr: ":1338"},
 		},
