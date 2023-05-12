@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/kacheio/kache/pkg/config"
 	"github.com/rs/zerolog/log"
 )
 
@@ -16,9 +17,9 @@ import (
 type Listeners map[string]*Listener
 
 // NewListeners creates new listeners.
-func NewListeners(config Endpoints, handler http.Handler) (Listeners, error) {
+func NewListeners(cfg config.Endpoints, handler http.Handler) (Listeners, error) {
 	listeners := make(Listeners)
-	for name, endpoint := range config {
+	for name, endpoint := range cfg {
 		ctx := log.With().Str("listenerName", name).Logger().WithContext(context.Background())
 
 		l, err := NewListener(ctx, endpoint, handler)
@@ -65,8 +66,8 @@ type Listener struct {
 	httpServer *http.Server
 }
 
-func NewListener(ctx context.Context, config *EndpointConfig, handler http.Handler) (*Listener, error) {
-	listener, err := net.Listen("tcp", config.Addr)
+func NewListener(ctx context.Context, cfg *config.EndpointConfig, handler http.Handler) (*Listener, error) {
+	listener, err := net.Listen("tcp", cfg.Addr)
 	if err != nil {
 		return nil, fmt.Errorf("error building listener: %w", err)
 	}

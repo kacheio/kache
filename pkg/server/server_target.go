@@ -6,13 +6,14 @@ import (
 	"net/url"
 
 	"github.com/gorilla/mux"
+	"github.com/kacheio/kache/pkg/config"
 )
 
 // Targets holds an array of targets.
 type Targets []*Target
 
 // NewTargets creates new upstream targets.
-func NewTargets(upstreamsConfig Upstreams) (Targets, error) {
+func NewTargets(upstreamsConfig config.Upstreams) (Targets, error) {
 	targets := make(Targets, len(upstreamsConfig))
 	for i, config := range upstreamsConfig {
 		t, err := NewTarget(config)
@@ -43,17 +44,17 @@ type Target struct {
 }
 
 // NewTarget creates a new upstream target.
-func NewTarget(config *UpstreamConfig) (*Target, error) {
-	u, err := url.Parse(config.Addr)
+func NewTarget(cfg *config.UpstreamConfig) (*Target, error) {
+	u, err := url.Parse(cfg.Addr)
 	if err != nil {
 		return nil, err
 	}
 
 	r := mux.NewRouter()
-	r.PathPrefix(config.Path) // TODO: add host?
+	r.PathPrefix(cfg.Path) // TODO: add host?
 
 	t := &Target{
-		name:     config.Name,
+		name:     cfg.Name,
 		upstream: u,
 		router:   r,
 	}

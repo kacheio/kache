@@ -5,25 +5,19 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/kacheio/kache/pkg/config"
 	"github.com/kacheio/kache/pkg/server"
 	"github.com/rs/zerolog/log"
 )
 
-// Config holds the API configuration.
-type Config struct {
-	Port  int    `yaml:"port"`
-	Path  string `yaml:"path,omitempty"`
-	Debug bool   `yaml:"debug,omitempty"`
-}
-
 // API is the root API structure.
 type API struct {
-	config Config
+	config config.API
 	server *Server
 }
 
 // New creates a new API.
-func New(cfg Config) (*API, error) {
+func New(cfg config.API) (*API, error) {
 	srv := NewServer(cfg)
 
 	api := &API{
@@ -56,7 +50,7 @@ type Server struct {
 	router *mux.Router
 }
 
-func NewServer(cfg Config) *Server {
+func NewServer(cfg config.API) *Server {
 	srv := &Server{
 		router: mux.NewRouter(),
 	}
