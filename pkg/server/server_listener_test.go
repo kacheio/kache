@@ -20,7 +20,7 @@ func TestNewListener(t *testing.T) {
 		_, _ = w.Write([]byte("Test Server"))
 	})
 
-	listener, err := NewListener(context.Background(), &config.EndpointConfig{
+	listener, err := NewListener(context.Background(), &config.Listener{
 		Addr: ":1337",
 	}, handler)
 	require.NoError(t, err)
@@ -44,7 +44,7 @@ func TestShutdown(t *testing.T) {
 		_, _ = w.Write([]byte("Test Server"))
 	})
 
-	ln, err := NewListener(context.Background(), &config.EndpointConfig{
+	ln, err := NewListener(context.Background(), &config.Listener{
 		Addr: ":1337",
 	}, handler)
 	require.NoError(t, err)

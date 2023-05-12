@@ -17,12 +17,12 @@ import (
 type Listeners map[string]*Listener
 
 // NewListeners creates new listeners.
-func NewListeners(cfg config.Endpoints, handler http.Handler) (Listeners, error) {
+func NewListeners(cfg config.Listeners, handler http.Handler) (Listeners, error) {
 	listeners := make(Listeners)
-	for name, endpoint := range cfg {
+	for name, listener := range cfg {
 		ctx := log.With().Str("listenerName", name).Logger().WithContext(context.Background())
 
-		l, err := NewListener(ctx, endpoint, handler)
+		l, err := NewListener(ctx, listener, handler)
 		if err != nil {
 			return nil, err
 		}
@@ -66,7 +66,7 @@ type Listener struct {
 	httpServer *http.Server
 }
 
-func NewListener(ctx context.Context, cfg *config.EndpointConfig, handler http.Handler) (*Listener, error) {
+func NewListener(ctx context.Context, cfg *config.Listener, handler http.Handler) (*Listener, error) {
 	listener, err := net.Listen("tcp", cfg.Addr)
 	if err != nil {
 		return nil, fmt.Errorf("error building listener: %w", err)

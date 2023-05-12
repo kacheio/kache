@@ -13,7 +13,7 @@ var (
 
 // Configuration is the root configuration.
 type Configuration struct {
-	Endpoints Endpoints `yaml:"listeners"`
+	Listeners Listeners `yaml:"listeners"`
 	Upstreams Upstreams `yaml:"upstreams"`
 
 	API API `yaml:"api"`
@@ -23,7 +23,7 @@ type Configuration struct {
 // Validate validates the configuration.
 func (c *Configuration) Validate() error {
 	return errors.Join(
-		c.Endpoints.Validate(),
+		c.Listeners.Validate(),
 		c.Upstreams.Validate(),
 	)
 }
@@ -34,23 +34,23 @@ type Global struct {
 	HTTPAddr        string `yaml:"host"`
 }
 
-// Endpoints holds the listeners.
-type Endpoints map[string]*EndpointConfig
+// Listeners holds the listener configs.
+type Listeners map[string]*Listener
 
-// EndpointConfig holds the endpoint config.
-type EndpointConfig struct {
+// Listener holds the listener config.
+type Listener struct {
 	Addr string `yaml:"addr"`
 }
 
-// Validate validates the endpoint config.
-func (e Endpoints) Validate() error {
-	if len(e) < 1 {
+// Validate validates the listener config.
+func (l Listeners) Validate() error {
+	if len(l) < 1 {
 		return errInvalidListenersConfig
 	}
 	return nil
 }
 
-// Upstreams holds the upstreams
+// Upstreams holds the upstream configs.
 type Upstreams []*UpstreamConfig
 
 // UpstreamConfig holds the upstream target config.
