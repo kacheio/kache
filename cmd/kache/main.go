@@ -39,6 +39,11 @@ func main() {
 		}
 	}
 
+	if err := cfg.Validate(); err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "error validating config:\n%v\n", err)
+		os.Exit(1)
+	}
+
 	logger.InitLogger(&cfg.Log)
 
 	t, err := kache.New(cfg)
