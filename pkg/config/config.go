@@ -16,8 +16,8 @@ type Configuration struct {
 	Listeners Listeners `yaml:"listeners"`
 	Upstreams Upstreams `yaml:"upstreams"`
 
-	API API `yaml:"api"`
-	Log Log `yaml:"logging"`
+	API *API `yaml:"api"`
+	Log *Log `yaml:"logging"`
 }
 
 // Validate validates the configuration.

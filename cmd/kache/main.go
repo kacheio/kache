@@ -44,7 +44,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger.InitLogger(&cfg.Log)
+	logger.InitLogger(cfg.Log)
 
 	t, err := kache.New(cfg)
 	if err != nil {

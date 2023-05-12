@@ -36,7 +36,7 @@ func New(cfg config.Configuration) (*Kache, error) {
 
 // initAPI initializes the public API.
 func (t *Kache) initAPI() (err error) {
-	t.API, err = api.New(t.Cfg.API)
+	t.API, err = api.New(*t.Cfg.API)
 	if err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func (t *Kache) initAPI() (err error) {
 
 // initServer initializes the core server.
 func (t *Kache) initServer() (err error) {
-	t.Server, err = server.NewServer(t.Cfg, *t.Provider)
+	t.Server, err = server.NewServer(&t.Cfg, *t.Provider)
 	if err != nil {
 		return err
 	}

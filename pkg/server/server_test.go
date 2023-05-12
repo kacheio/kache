@@ -23,7 +23,7 @@ func TestProxyNoHost(t *testing.T) {
 
 	// Setup proxy server.
 
-	cfg := config.Configuration{
+	cfg := &config.Configuration{
 		Upstreams: []*config.Upstream{
 			// {"test", testServer.URL, ""},
 		},
@@ -50,7 +50,7 @@ func TestProxySingleHost(t *testing.T) {
 
 	// Setup proxy server.
 
-	cfg := config.Configuration{
+	cfg := &config.Configuration{
 		Upstreams: []*config.Upstream{
 			{Name: "test", Addr: testServer.URL, Path: ""},
 		},
@@ -89,7 +89,7 @@ func TestProxyMultiHost(t *testing.T) {
 
 	// Setup proxy server.
 
-	cfg := config.Configuration{
+	cfg := &config.Configuration{
 		Upstreams: []*config.Upstream{
 			{Name: "test 1", Addr: testServer1.URL, Path: "/bot"},
 			{Name: "test 2", Addr: testServer2.URL, Path: "/api/test"},
@@ -122,7 +122,7 @@ func TestProxyMultiListener(t *testing.T) {
 
 	// Setup proxy server.
 
-	cfg := config.Configuration{
+	cfg := &config.Configuration{
 		Upstreams: []*config.Upstream{
 			{Name: "Backend", Addr: testServer.URL, Path: "/"},
 		},

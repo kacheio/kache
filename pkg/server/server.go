@@ -27,7 +27,7 @@ var ErrMatchingTarget = fmt.Errorf("no matching target found")
 
 // Server is the reverse proxy cache.
 type Server struct {
-	cfg config.Configuration
+	cfg *config.Configuration
 
 	// proxy forwards requests to targets.
 	proxy *httputil.ReverseProxy
@@ -45,7 +45,7 @@ type Server struct {
 }
 
 // NewServer creates a new configured server.
-func NewServer(cfg config.Configuration, pdr provider.Provider) (*Server, error) {
+func NewServer(cfg *config.Configuration, pdr provider.Provider) (*Server, error) {
 	srv := &Server{
 		cfg:    cfg,
 		cache:  pdr,
