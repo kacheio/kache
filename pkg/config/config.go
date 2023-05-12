@@ -1,5 +1,16 @@
 package config
 
+import (
+	"errors"
+)
+
+var (
+	errInvalidListenersConfig = errors.New("invalid listeners config")
+	errInvalidUpstreamsConfig = errors.New("invalid upstreams config")
+)
+
+// TODO: set defaults
+
 // Configuration is the root configuration.
 type Configuration struct {
 	Endpoints Endpoints `yaml:"listeners"`
@@ -7,6 +18,14 @@ type Configuration struct {
 
 	API API `yaml:"api"`
 	Log Log `yaml:"logging"`
+}
+
+// Validate validates the configuration.
+func (c *Configuration) Validate() error {
+	return errors.Join(
+		c.Endpoints.Validate(),
+		c.Upstreams.Validate(),
+	)
 }
 
 // Global holds the global configuration.
@@ -18,18 +37,35 @@ type Global struct {
 // Endpoints holds the listeners.
 type Endpoints map[string]*EndpointConfig
 
+// EndpointConfig holds the endpoint config.
 type EndpointConfig struct {
 	Addr string `yaml:"addr"`
+}
+
+// Validate validates the endpoint config.
+func (e Endpoints) Validate() error {
+	if len(e) < 1 {
+		return errInvalidListenersConfig
+	}
+	return nil
 }
 
 // Upstreams holds the upstreams
 type Upstreams []*UpstreamConfig
 
-// UpstreamConfig ....
+// UpstreamConfig holds the upstream target config.
 type UpstreamConfig struct {
 	Name string `yaml:"name"`
 	Addr string `yaml:"addr"`
 	Path string `yaml:"path"`
+}
+
+// Validate validates the upstream config.
+func (u Upstreams) Validate() error {
+	if len(u) < 1 {
+		return errInvalidUpstreamsConfig
+	}
+	return nil
 }
 
 // API holds the API configuration.
