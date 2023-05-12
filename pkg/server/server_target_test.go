@@ -10,7 +10,7 @@ import (
 )
 
 func TestMatchTarget(t *testing.T) {
-	targets, err := NewTargets([]*config.UpstreamConfig{
+	targets, err := NewTargets([]*config.Upstream{
 		{Name: "upstream 1", Addr: "http://example.com", Path: "/bot"},
 		{Name: "upstream 2", Addr: "http://example.com", Path: "/bot"},
 		{Name: "upstream 3", Addr: "http://example.com", Path: "/news/{id:[0-9]+}"},
