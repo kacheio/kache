@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"os"
@@ -10,7 +9,6 @@ import (
 	"github.com/kacheio/kache/pkg/kache"
 	"github.com/kacheio/kache/pkg/utils/logger"
 	"github.com/rs/zerolog/log"
-	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -25,6 +23,7 @@ func main() {
 	// TODO: handle config via flags and env
 
 	cfg := config.Configuration{}
+	ldr := config.NewFileLoader()
 
 	// Load config file.
 	var configFile string
@@ -33,7 +32,7 @@ func main() {
 	flag.Parse()
 
 	if configFile != "" {
-		if err := LoadConfig(configFile, &cfg); err != nil {
+		if err := ldr.Load(configFile, &cfg); err != nil {
 			fmt.Fprintf(os.Stderr, "error loading config from %s: %v\n", configFile, err)
 			os.Exit(1)
 		}
@@ -56,28 +55,5 @@ func main() {
 	err = t.Run()
 	if err != nil {
 		log.Fatal().Err(err).Msg("running application")
-	}
-}
-
-// LoadConfig reads the YAML-formatted config from filename into config.
-func LoadConfig(filename string, cfg *config.Configuration) error {
-	buf, err := os.ReadFile(filename)
-	if err != nil {
-		return err
-	}
-
-	dec := yaml.NewDecoder(bytes.NewReader(buf))
-	dec.KnownFields(true)
-
-	return dec.Decode(cfg)
-}
-
-// DumpYaml dumps the config to stdout.
-func DumpYaml(cfg *config.Configuration) {
-	out, err := yaml.Marshal(cfg)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-	} else {
-		fmt.Printf("%s\n", out)
 	}
 }
