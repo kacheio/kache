@@ -10,10 +10,13 @@ linters:
     - vet
     - unused
     - godox
+    - lll
 run:
   skip-dirs:
     - ^.git
 linters-settings:
+  lll:
+    line-length: 120
   govet:
     fieldalignment: 0
   godox:
