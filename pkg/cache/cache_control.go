@@ -2,6 +2,7 @@ package cache
 
 import (
 	"math"
+	"net/http"
 	"strings"
 	"time"
 )
@@ -175,4 +176,63 @@ func parseDuration(s string) time.Duration {
 		return time.Duration(-1)
 	}
 	return d
+}
+
+// parseHttpTime parse a datetime http header value.
+func parseHttpTime(s string) time.Time {
+	if s == "" {
+		return time.Time{}
+	}
+	// Acceptable Date/Time Formats per:
+	// https://datatracker.ietf.org/doc/html/rfc7231#section-7.1.1.1
+	//
+	// Preferred format:
+	// Sun, 06 Nov 1994 08:49:37 GMT    ; IMF-fixdate. RFC1123
+	//
+	// Obsolete formats:
+	// Sunday, 06-Nov-94 08:49:37 GMT   ; obsolete RFC 850 format.
+	// Sun Nov  6 08:49:37 1994         ; ANSI C's asctime() format.
+	//
+	// A recipient that parses a timestamp value in an HTTP header field
+	// MUST accept all three HTTP-date formats.
+	//
+	httpRFC850 := "Monday, 02-Jan-06 15:04:05 GMT" // time.RFC1123 but hard-coded GMT time zone.
+	for _, fmt := range [...]string{http.TimeFormat, httpRFC850, time.ANSIC} {
+		if t, err := time.Parse(fmt, s); err == nil {
+			return t
+		}
+	}
+	return time.Time{}
+}
+
+// CalculateAge calculates the value of Age headers.
+// https://httpwg.org/specs/rfc7234.html#age.calculations
+func CalculateAge(headers *http.Header, responseTime time.Time, now time.Time) time.Duration {
+	// Calculate apparent age.
+	date := parseHttpTime(headers.Get(HeaderDate))
+	apparentAge := Max(0, int64(responseTime.Sub(date)))
+
+	// Set corrected age to the value Age header,
+	// as response delay (response_time - request_time) is assumed to be negligible.
+	age, err := time.ParseDuration(headers.Get(HeaderAge) + "s")
+	if err != nil {
+		age = time.Duration(0 * time.Second)
+	}
+	correctedAge := age
+	correctedInitialAge := Max(int64(apparentAge), int64(correctedAge))
+
+	// Calculate current age by adding the amount of time (seconds)
+	// since the response was last validated by the origin server.
+	residentTime := now.Sub(responseTime)
+	currentAge := correctedInitialAge + int64(residentTime)
+
+	return time.Duration(currentAge)
+}
+
+// Max returns the max of the given values.
+func Max(x, y int64) int64 {
+	if x < y {
+		return y
+	}
+	return x
 }
