@@ -234,12 +234,13 @@ func TestParseHttpTime(t *testing.T) {
 }
 
 func formatTime(t time.Time) string {
-	return t.Format(time.RFC1123)
+	return t.Format(http.TimeFormat)
 }
 
 func currentTime() time.Time {
+	t := time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC)
 	ts := clock.NewEventTimeSource()
-	ts.Update(time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC))
+	ts.Update(t)
 	return ts.Now()
 }
 
