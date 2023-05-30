@@ -24,5 +24,9 @@
 logs/
 
 # Local config files
+.env
+.env.example
+.env.local
+
 /kache.yml
 dist/
