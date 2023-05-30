@@ -205,7 +205,7 @@ func parseHttpTime(s string) time.Time {
 	return time.Time{}
 }
 
-// CalculateAge calculates the value of Age headers.
+// CalculateAge calculates the value of Age headers in seconds.
 // https://httpwg.org/specs/rfc7234.html#age.calculations
 func CalculateAge(headers *http.Header, responseTime time.Time, now time.Time) time.Duration {
 	// Calculate apparent age.
@@ -226,7 +226,7 @@ func CalculateAge(headers *http.Header, responseTime time.Time, now time.Time) t
 	residentTime := now.Sub(responseTime)
 	currentAge := correctedInitialAge + int64(residentTime)
 
-	return time.Duration(currentAge)
+	return time.Duration(currentAge).Truncate(time.Second)
 }
 
 // Max returns the max of the given values.

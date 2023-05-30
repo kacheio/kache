@@ -318,6 +318,13 @@ func TestCalculateAge(t *testing.T) {
 			currentTime().Add(5 * time.Second),
 			seconds(5),
 		},
+		{
+			"ensure seconds as unit for age calculation",
+			headers(headerMap{"Date": formatTime(currentTime())}),
+			currentTime(),
+			currentTime().Add(9 * time.Millisecond),
+			seconds(0),
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
