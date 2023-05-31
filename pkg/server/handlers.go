@@ -22,8 +22,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("serving request from proxy: ", r)
 
-	cacheKey, _ := cache.NewKeyFromRequst(r)
-	log.Println("Cache Key: ", cacheKey)
+	cacheKey := cache.NewKeyFromRequst(r)
 
 	if cached := s.cache.Get(cacheKey.String()); cached != nil {
 

@@ -18,8 +18,8 @@ type Key struct {
 }
 
 // NewFromRequest creates a cache key from the given request.
-func NewKeyFromRequst(req *http.Request) (Key, error) {
-	key := Key{
+func NewKeyFromRequst(req *http.Request) *Key {
+	key := &Key{
 		ClusterName: "kache-",
 		Host:        req.Host,
 		Path:        req.URL.Path,
@@ -33,7 +33,7 @@ func NewKeyFromRequst(req *http.Request) (Key, error) {
 			key.Scheme = "https"
 		}
 	}
-	return key, nil //TODO: error
+	return key
 }
 
 // String encodes the cache key as string.
