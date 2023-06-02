@@ -29,7 +29,7 @@ const (
 	HeaderAge          = "Age"
 	HeaderEtag         = "Etag"
 	HeaderExpires      = "Expires"
-	HeaderLastModified = "LastModified"
+	HeaderLastModified = "Last-Modified"
 )
 
 var (
