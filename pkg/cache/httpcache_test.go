@@ -159,7 +159,7 @@ func TestLookupRequest(t *testing.T) {
 			"public, max-age=1000, must-revalidate",
 			currentTime().Add(seconds(999)),
 			currentTime(),
-			EntryRequiresValidation,
+			EntryOk,
 			"999",
 		},
 	}

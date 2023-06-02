@@ -76,6 +76,7 @@ type LookupRequest struct {
 // NewLookupRequest creates a new lookup request structure.
 func NewLookupRequest(req *http.Request, timestamp time.Time) *LookupRequest {
 	var requestCacheControl RequestCacheControl
+	requestCacheControl.SetDefaults() 
 	cacheControl := req.Header.Get(HeaderCacheControl)
 
 	if cacheControl != "" {
