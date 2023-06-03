@@ -44,7 +44,7 @@ func NewCachedTransport(p provider.Provider) *Transport {
 func (t *Transport) RoundTrip(ireq *http.Request) (resp *http.Response, err error) {
 	req := ireq // req is either the original request, or a modified fork.
 
-	if !cache.CanServeRequestFromCache(req) {
+	if !cache.IsCacheableRequest(req) {
 		log.Debug().Msgf("Ignoring uncachable request: %v", req)
 		return t.send(req)
 	}
