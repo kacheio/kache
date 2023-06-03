@@ -41,54 +41,24 @@ func NewCachedTransport(p provider.Provider) *Transport {
 }
 
 // RoundTrip issues a http roundtrip and applies the http caching logic.
-func (t *Transport) RoundTrip(ireq *http.Request) (resp *http.Response, err error) {
-	req := ireq // req is either the original request, or a modified fork.
+func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
 
 	if !cache.IsCacheableRequest(req) {
 		log.Debug().Msgf("Ignoring uncachable request: %v", req)
 		return t.send(req)
 	}
 
-	lookupReq := cache.NewLookupRequest(req, t.currentTime())
-	cachedRes := t.Cache.FetchResponse(context.Background(), *lookupReq)
+	lookup := cache.NewLookupRequest(req, t.currentTime())
+	cached := t.Cache.FetchResponse(context.Background(), *lookup)
 
-	switch cachedRes.Status {
+	switch cached.Status {
 	case cache.EntryOk:
-		cachedRes.Header().Set(XCache, HIT)
-		return cachedRes.Response(), nil
+		return t.handleCacheHit(cached)
 
 	case cache.EntryRequiresValidation:
-		cachedRes.Header().Set(XCache, HIT)
-
-		// forkReq forks req into a shallow clone of ireq the first
-		// time it's called.
-		forkReq := func() {
-			if ireq == req {
-				req = new(http.Request)
-				*req = *ireq // shallow clone
-				// Copy the initial request's Header
-				req.Header = make(http.Header)
-				for k, vv := range ireq.Header {
-					req.Header[k] = vv
-				}
-			}
-		}
-
-		// Inject validation headers.
-		if etag := cachedRes.Header().Get(cache.HeaderEtag); etag != "" {
-			forkReq()
-			req.Header.Set(cache.HeaderIfNoneMatch, etag)
-		}
-		if lastModified := cachedRes.Header().Get(cache.HeaderLastModified); lastModified != "" {
-			forkReq()
-			req.Header.Set(cache.HeaderIfModifiedSince, lastModified)
-		} else {
-			forkReq()
-			// Fallback to Date header if Last-Modified is missing or invalid.
-			// https://httpwg.org/specs/rfc7232.html#header.if-modified-sinces
-			date := cachedRes.Header().Get(cache.HeaderDate)
-			req.Header.Set(cache.HeaderLastModified, date)
-		}
+		log.Debug().Msgf("Cache HIT with validation: %v", cached.Response())
+		cached.Header().Set(XCache, HIT)
+		req = t.injectValidationHeaders(lookup.Request, cached.Header())
 	}
 
 	// Send request to upstream.
@@ -99,49 +69,40 @@ func (t *Transport) RoundTrip(ireq *http.Request) (resp *http.Response, err erro
 	}
 
 	shouldUpdateCachedEntry := true
-	if err == nil && resp.StatusCode == http.StatusNotModified &&
-		cachedRes.Status == cache.EntryRequiresValidation {
-		// Process successful validation.
-
+	if resp.StatusCode == http.StatusNotModified {
 		// If the 304 response contains a strong validator (etag) that does not match
 		// the cached response, the cached response should not be updated.
-		// https://httpwg.org/specs/rfc7234.html#freshening.responses
 		resEtag := resp.Header.Get(cache.HeaderEtag)
-		cacEtag := cachedRes.Header().Get(cache.HeaderEtag)
+		cacEtag := cached.Header().Get(cache.HeaderEtag)
 		shouldUpdateCachedEntry = (resEtag == "" || (cacEtag != "" && cacEtag == resEtag))
 
 		// A response that has been validated should not contain an Age header
 		// as it is equivalent to a freshly served response from the origin.
-		cachedRes.Header().Del(cache.HeaderAge)
+		cached.Header().Del(cache.HeaderAge)
 
 		// Add any missing headers from the 304 to the cached response.
-		// Skip headers that should not be updated upon validation.
-		// https://www.ietf.org/archive/id/draft-ietf-httpbis-cache-18.html (3.2)
-		headersNotToUpdate := map[string]struct{}{
-			"Content-Range":  {}, // should not be changed upon validation.
-			"Content-Length": {}, // should never be updated.
-			"Etag":           {},
-			"Vary":           {},
-		}
-		for k, vv := range resp.Header {
-			if _, ok := headersNotToUpdate[k]; !ok {
-				cachedRes.Header()[k] = vv
-			}
-		}
+		cached.UpdateHeader(resp.Header)
 
-		resp.Body.Close()
-		resp = cachedRes.Response()
+		_ = resp.Body.Close()
+		resp = cached.Response()
 	}
 
 	// Store new or update validated response.
-	if cache.IsCacheableResponse(resp) && !lookupReq.ReqCacheControl.NoStore &&
-		shouldUpdateCachedEntry && req.Method != "HEAD" {
-		t.Cache.StoreResponse(context.TODO(), *lookupReq, resp)
+	if cache.IsCacheableResponse(resp) && shouldUpdateCachedEntry &&
+		!lookup.ReqCacheControl.NoStore && lookup.Request.Method != "HEAD" {
+		t.Cache.StoreResponse(context.TODO(), lookup, resp)
 	} else {
-		t.Cache.Delete(context.TODO(), *lookupReq)
+		t.Cache.Delete(context.TODO(), lookup)
 	}
 
 	return resp, nil
+}
+
+// handleCacheHit handles a cache hit and sends the cached response downstream.
+func (t *Transport) handleCacheHit(cached *cache.LookupResult) (*http.Response, error) {
+	log.Debug().Msgf("Cache HIT: %v", cached.Response())
+	cached.Header().Set(XCache, HIT)
+	return cached.Response(), nil
 }
 
 // send issues an upstream request.
@@ -151,4 +112,40 @@ func (t *Transport) send(req *http.Request) (*http.Response, error) {
 		transport = http.DefaultTransport
 	}
 	return transport.RoundTrip(req)
+}
+
+// injectValidationHeaders injects validation headers.
+// It either returns the original request or a modified fork.
+func (t *Transport) injectValidationHeaders(ireq *http.Request, header http.Header) *http.Request {
+	req := ireq // req is either the original request, or a modified fork.
+
+	// forkReq forks req into a shallow clone of ireq
+	// with copied headers the first time it's called.
+	forkReq := func() {
+		if ireq == req {
+			req = new(http.Request)
+			*req = *ireq // shallow clone
+			req.Header = make(http.Header)
+			for k, vv := range ireq.Header {
+				req.Header[k] = vv
+			}
+		}
+	}
+
+	// Inject validation headers.
+	if etag := header.Get(cache.HeaderEtag); etag != "" {
+		forkReq()
+		req.Header.Set(cache.HeaderIfNoneMatch, etag)
+	}
+	if lastModified := header.Get(cache.HeaderLastModified); lastModified != "" {
+		forkReq()
+		req.Header.Set(cache.HeaderIfModifiedSince, lastModified)
+	} else {
+		// Fallback to Date header if Last-Modified is missing.
+		forkReq()
+		date := header.Get(cache.HeaderDate)
+		req.Header.Set(cache.HeaderLastModified, date)
+	}
+
+	return req
 }
