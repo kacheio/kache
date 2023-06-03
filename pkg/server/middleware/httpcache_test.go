@@ -146,7 +146,7 @@ func TestExpiredValidated(t *testing.T) {
 		// Check that the served response is the cached response.
 		assert.Equal(t, "HIT", resp.Header.Get(XCache))
 
-		// A response that has been validated should not contain an Age header 
+		// A response that has been validated should not contain an Age header
 		// as it is equivalent to a freshly served response from the origin.
 		assert.Equal(t, "", resp.Header.Get("Age"))
 	}
@@ -200,7 +200,7 @@ func TestExpiredFetchedNewResponse(t *testing.T) {
 	// Ensure response date header gets updated with the 304 date.
 	advanceTime(11 * time.Second)
 
-	// Send second request, attempted validation of the cached response should fail. The new 
+	// Send second request, attempted validation of the cached response should fail. The new
 	// response should be served.
 	{
 		resp, err := s.client.Do(req)
