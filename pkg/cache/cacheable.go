@@ -65,11 +65,11 @@ var (
 	}
 )
 
-// CanServeRequestFromCache checks if a request can be served from cache.
+// IsCacheableRequest checks if a request can be served from cache.
 // This does not depend on cache-control headers as request cache-control
 // headers only decide whether validation is required and whether the
 // response can be cached.
-func CanServeRequestFromCache(req *http.Request) bool {
+func IsCacheableRequest(req *http.Request) bool {
 	// Check if the request contains any conditional headers.
 	// For now, requests with conditional headers bypass the cache.
 	for _, h := range conditionalHeaders {

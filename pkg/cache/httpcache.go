@@ -40,7 +40,7 @@ func (c *HttpCache) FetchResponse(_ context.Context, lookup LookupRequest) *Look
 }
 
 // StoreResponse stores a response in the cache.
-func (c *HttpCache) StoreResponse(_ context.Context, lookup LookupRequest, response *http.Response) {
+func (c *HttpCache) StoreResponse(_ context.Context, lookup *LookupRequest, response *http.Response) {
 	res, err := httputil.DumpResponse(response, true)
 	if err != nil {
 		// TODO: handle errors
@@ -54,7 +54,7 @@ func (c *HttpCache) StoreResponse(_ context.Context, lookup LookupRequest, respo
 }
 
 // Deletes deletes the response matching the request key from the cache.
-func (c *HttpCache) Delete(_ context.Context, lookup LookupRequest) {
+func (c *HttpCache) Delete(_ context.Context, lookup *LookupRequest) {
 	c.cache.Delete(lookup.Key.String())
 }
 
@@ -170,4 +170,23 @@ func (r *LookupResult) Header() http.Header {
 // Response returns the cached response.
 func (r *LookupResult) Response() *http.Response {
 	return r.cachedResponse
+}
+
+// UpdateHeader add any headers to the cached response.
+func (r *LookupResult) UpdateHeader(header http.Header) {
+	cachedHeader := r.cachedResponse.Header
+
+	// Skip headers that should not be updated upon validation.
+	// // https://www.ietf.org/archive/id/draft-ietf-httpbis-cache-18.html (3.2)
+	headersNotToUpdate := map[string]struct{}{
+		"Content-Range":  {}, // should not be changed upon validation.
+		"Content-Length": {}, // should never be updated.
+		"Etag":           {},
+		"Vary":           {},
+	}
+	for k, vv := range header {
+		if _, ok := headersNotToUpdate[k]; !ok {
+			cachedHeader[k] = vv
+		}
+	}
 }

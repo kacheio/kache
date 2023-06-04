@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/kacheio/kache/pkg/config"
 	"github.com/kacheio/kache/pkg/provider"
+	"github.com/kacheio/kache/pkg/server/middleware"
 	"github.com/rs/zerolog/log"
 )
 
@@ -66,19 +66,21 @@ func NewServer(cfg *config.Configuration, pdr provider.Provider) (*Server, error
 	}
 	srv.listeners = listeners
 
+	t := middleware.NewCachedTransport(pdr)
+
 	// Create the reverse proxy.
 	proxy := &httputil.ReverseProxy{
+		ErrorHandler: errorHandler,
 		Director: srv.Director(),
-		Transport: &http.Transport{
-			// Disable SSL verification for self-signed certificates
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-		ModifyResponse: srv.modifyResponse,
-		ErrorHandler:   errorHandler,
+		Transport: t,
 	}
 	srv.proxy = proxy
 
 	return srv, nil
+}
+
+func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.proxy.ServeHTTP(w, r)
 }
 
 // errorHandler is the proxy error handler.

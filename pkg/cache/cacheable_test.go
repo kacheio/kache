@@ -29,38 +29,38 @@ func setupResponse(t *testing.T) {
 func TestCanServeRequestFromCache(t *testing.T) {
 	t.Run("Cacheable request", func(t *testing.T) {
 		setupRequest(t)
-		assert.True(t, CanServeRequestFromCache(req))
+		assert.True(t, IsCacheableRequest(req))
 	})
 	t.Run("Path", func(t *testing.T) {
 		setupRequest(t)
-		assert.True(t, CanServeRequestFromCache(req))
+		assert.True(t, IsCacheableRequest(req))
 		req.URL.Path = ""
-		assert.False(t, CanServeRequestFromCache(req))
+		assert.False(t, IsCacheableRequest(req))
 	})
 	t.Run("Host", func(t *testing.T) {
 		setupRequest(t)
-		assert.True(t, CanServeRequestFromCache(req))
+		assert.True(t, IsCacheableRequest(req))
 		req.Host = ""
-		assert.False(t, CanServeRequestFromCache(req))
+		assert.False(t, IsCacheableRequest(req))
 	})
 	t.Run("Method", func(t *testing.T) {
 		setupRequest(t)
 		req.Method = http.MethodGet
-		assert.True(t, CanServeRequestFromCache(req))
+		assert.True(t, IsCacheableRequest(req))
 		req.Method = http.MethodHead
-		assert.True(t, CanServeRequestFromCache(req))
+		assert.True(t, IsCacheableRequest(req))
 		req.Method = http.MethodPost
-		assert.False(t, CanServeRequestFromCache(req))
+		assert.False(t, IsCacheableRequest(req))
 		req.Method = http.MethodPut
-		assert.False(t, CanServeRequestFromCache(req))
+		assert.False(t, IsCacheableRequest(req))
 		req.Method = ""
-		assert.False(t, CanServeRequestFromCache(req))
+		assert.False(t, IsCacheableRequest(req))
 	})
 	t.Run("Authorization header", func(t *testing.T) {
 		setupRequest(t)
-		assert.True(t, CanServeRequestFromCache(req))
+		assert.True(t, IsCacheableRequest(req))
 		req.Header.Set(HeaderAuthorization, "Basic bmFtZTpwYXNzd29yZA==")
-		assert.False(t, CanServeRequestFromCache(req))
+		assert.False(t, IsCacheableRequest(req))
 	})
 	t.Run("Conditional headers", func(t *testing.T) {
 		setupRequest(t)
@@ -68,9 +68,9 @@ func TestCanServeRequestFromCache(t *testing.T) {
 			"if-unmodified-since", "if-range"}
 		for _, header := range headers {
 			t.Run(header, func(t *testing.T) {
-				assert.True(t, CanServeRequestFromCache(req))
+				assert.True(t, IsCacheableRequest(req))
 				req.Header.Set(header, "some value")
-				assert.False(t, CanServeRequestFromCache(req))
+				assert.False(t, IsCacheableRequest(req))
 			})
 			req.Header.Del(header)
 		}
