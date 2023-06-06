@@ -40,6 +40,9 @@ mod-vendor: ## Vendor modules.
 clean: ## Clean test results.
 	go clean -testcache
 
+license: ## Add license header.
+	go run tools/license/main.go -license=LICENSE
+
 release: ## Make release.
 	goreleaser release --skip-publish
 	tar cfz dist/kache-${VERSION}.src.tar.gz \
