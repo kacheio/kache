@@ -10,26 +10,26 @@ import (
 func TestSimpleCache(t *testing.T) {
 	cache, _ := NewSimpleCache(nil)
 
-	cache.Put("A", "Alice")
-	assert.Equal(t, "Alice", cache.Get("A"))
+	cache.Set("A", []byte("Alice"))
+	assert.Equal(t, "Alice", string(cache.Get("A")))
 	assert.Nil(t, cache.Get("B"))
 	assert.Equal(t, 1, cache.Size())
 
-	cache.Put("B", "Bob")
-	cache.Put("E", "Eve")
-	cache.Put("G", "Gopher")
+	cache.Set("B", []byte("Bob"))
+	cache.Set("E", []byte("Eve"))
+	cache.Set("G", []byte("Gopher"))
 	assert.Equal(t, 4, cache.Size())
 
-	assert.Equal(t, "Bob", cache.Get("B"))
-	assert.Equal(t, "Eve", cache.Get("E"))
-	assert.Equal(t, "Gopher", cache.Get("G"))
+	assert.Equal(t, "Bob", string(cache.Get("B")))
+	assert.Equal(t, "Eve", string(cache.Get("E")))
+	assert.Equal(t, "Gopher", string(cache.Get("G")))
 
-	cache.Put("A", "Foo")
-	assert.Equal(t, "Foo", cache.Get("A"))
+	cache.Set("A", []byte("Foo"))
+	assert.Equal(t, "Foo", string(cache.Get("A")))
 
-	cache.Put("B", "Bar")
-	assert.Equal(t, "Bar", cache.Get("B"))
-	assert.Equal(t, "Foo", cache.Get("A"))
+	cache.Set("B", []byte("Bar"))
+	assert.Equal(t, "Bar", string(cache.Get("B")))
+	assert.Equal(t, "Foo", string(cache.Get("A")))
 
 	cache.Delete("A")
 	assert.Nil(t, cache.Get("A"))
@@ -46,15 +46,15 @@ func TestSimpleCacheConcurrentAccess(t *testing.T) {
 	cache, _ := NewSimpleCache(nil)
 
 	for k, v := range data {
-		cache.Put(k, v)
+		cache.Set(k, []byte(v))
 	}
 
 	ch := make(chan struct{})
 	var wg sync.WaitGroup
 	for i := 0; i < 20; i++ {
-		wg.Add(2)
+		wg.Add(1)
 
-		// concurrent get and put
+		// concurrent get and Set
 		go func() {
 			defer wg.Done()
 
@@ -62,59 +62,11 @@ func TestSimpleCacheConcurrentAccess(t *testing.T) {
 
 			for j := 0; j < 1000; j++ {
 				cache.Get("A")
-				cache.Put("A", "Arnie")
-			}
-		}()
-
-		// concurrent iteration
-		go func() {
-			defer wg.Done()
-
-			<-ch
-
-			for j := 0; j < 50; j++ {
-				it := cache.Iterator()
-				for it.HasNext() {
-					_ = it.Next()
-				}
-				it.Close()
+				cache.Set("A", []byte("Arnie"))
 			}
 		}()
 	}
 
 	close(ch)
 	wg.Wait()
-}
-
-func TestSimpleIterator(t *testing.T) {
-	expected := map[string]string{
-		"A": "Alice",
-		"B": "Bob",
-		"G": "Gopher",
-		"E": "Eve",
-	}
-
-	cache, _ := NewSimpleCache(nil)
-
-	for k, v := range expected {
-		cache.Put(k, v)
-	}
-
-	got := map[string]string{}
-
-	it := cache.Iterator()
-	for it.HasNext() {
-		entry := it.Next()
-		got[entry.Key().(string)] = entry.Value().(string)
-	}
-	it.Close()
-	assert.Equal(t, expected, got)
-
-	it = cache.Iterator()
-	for i := 0; i < len(expected); i++ {
-		entry := it.Next()
-		got[entry.Key().(string)] = entry.Value().(string)
-	}
-	it.Close()
-	assert.Equal(t, expected, got)
 }

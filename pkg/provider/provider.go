@@ -9,22 +9,22 @@ import (
 type Provider interface {
 	// Get retrieves an element based on a key, returning nil if the element
 	// does not exist.
-	Get(key interface{}) interface{}
+	Get(key interface{}) []byte
 
-	// Put adds an element to the cache, returning the previous element.
-	Put(key interface{}, value interface{}) interface{}
-
-	// PutIfNotExist puts a value associated with a given key if it does not exist
-	// PutIfNotExist(key interface{}, value interface{}) (interface{}, error)
+	// Set adds an element to the cache.
+	Set(key interface{}, value []byte)
 
 	// Delete deletes an element in the cache.
 	Delete(key interface{}) bool
 
-	// Iterator returns the iterator into cache.
-	Iterator() Iterator
+	// // Iterator returns the iterator into cache.
+	// Iterator() Iterator
 
 	// Size returns the number of entries currently stored in the Cache.
 	Size() int
+
+	// Keys returns a slice of cache keys.
+	Keys() []any
 }
 
 // Options control the behavior of the cache.

@@ -59,7 +59,7 @@ func (t *Kache) initServer() (err error) {
 
 // initProvider initializes the cache provider.
 func (t *Kache) initProvider() error {
-	p, err := provider.NewSimpleCache(nil)
+	p, err := provider.NewInMemoryCache(provider.DefaultInMemoryCacheConfig)
 	if err != nil {
 		return err
 	}

@@ -29,12 +29,16 @@ func NewHttpCache(pdr provider.Provider) (*HttpCache, error) {
 // FetchResponse fetches a response matching the given request.
 func (c *HttpCache) FetchResponse(_ context.Context, lookup LookupRequest) *LookupResult {
 	if cached := c.cache.Get(lookup.Key.String()); cached != nil {
-		res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(cached.(*Entry).Body)), lookup.Request)
+		entry, err := DecodeEntry(cached)
+		if err != nil {
+			return &LookupResult{}
+		}
+		res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(entry.Body)), lookup.Request)
 		if err != nil {
 			log.Error().Err(err).Send()
 			return &LookupResult{}
 		}
-		return lookup.makeResult(res, cached.(*Entry).LastModified)
+		return lookup.makeResult(res, time.Unix(entry.Timestamp, 0))
 	}
 	return &LookupResult{}
 }
@@ -47,10 +51,14 @@ func (c *HttpCache) StoreResponse(_ context.Context, lookup *LookupRequest, resp
 		return
 	}
 	entry := &Entry{
-		Body:         res,
-		LastModified: lookup.Timestamp,
+		Body:      res,
+		Timestamp: lookup.Timestamp.Unix(),
 	}
-	c.cache.Put(lookup.Key.String(), entry)
+	data, err := entry.Encode()
+	if err != nil {
+		return
+	}
+	c.cache.Set(lookup.Key.String(), data)
 }
 
 // Deletes deletes the response matching the request key from the cache.
