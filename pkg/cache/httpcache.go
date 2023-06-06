@@ -50,7 +50,7 @@ func (c *HttpCache) StoreResponse(_ context.Context, lookup *LookupRequest, resp
 		Body:         res,
 		LastModified: lookup.Timestamp,
 	}
-	c.cache.Put(lookup.Key.String(), entry)
+	c.cache.Set(lookup.Key.String(), entry)
 }
 
 // Deletes deletes the response matching the request key from the cache.
