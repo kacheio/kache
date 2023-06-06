@@ -5,6 +5,7 @@ go 1.20
 require (
 	github.com/cespare/xxhash/v2 v2.2.0
 	github.com/gorilla/mux v1.8.0
+	github.com/hashicorp/golang-lru/v2 v2.0.2
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/rs/zerolog v1.29.1
 	github.com/stretchr/testify v1.8.2
