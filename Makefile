@@ -11,7 +11,7 @@ TEST_TIMEOUT := 20m
 
 COLOR := "\e[1;36m%s\e[0m\n"
 
-.PHONY: all lint format test test-with-race mod mod-check mod-vendor clean release snap-release run
+.PHONY: all lint format test test-with-race mod mod-check mod-vendor clean license release snap-release run
 
 lint: ## Run linters.
 	@printf $(COLOR) "Run linters..."
