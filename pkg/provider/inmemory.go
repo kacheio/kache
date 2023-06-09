@@ -23,12 +23,16 @@
 package provider
 
 import (
+	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/rs/zerolog/log"
 )
+
+var _ Provider = (*inMemoryCache)(nil)
 
 const (
 	maxInt          = int(^uint(0) >> 1)
@@ -39,7 +43,7 @@ const (
 type inMemoryCache struct {
 	mu sync.RWMutex
 
-	inner *lru.Cache[interface{}, []byte]
+	inner *lru.Cache[string, []byte]
 
 	maxSizeBytes     uint64
 	maxItemSizeBytes uint64
@@ -76,7 +80,7 @@ func NewInMemoryCache(config InMemoryCacheConfig) (Provider, error) {
 
 	// Initialize LRU cache with a high size limit, since
 	// evictions are managed internally based on item size.
-	l, err := lru.NewWithEvict[interface{}, []byte](maxInt, c.onEvict)
+	l, err := lru.NewWithEvict[string, []byte](maxInt, c.onEvict)
 	if err != nil {
 		return nil, err
 	}
@@ -86,12 +90,12 @@ func NewInMemoryCache(config InMemoryCacheConfig) (Provider, error) {
 }
 
 // onEvict is the eviction callback.
-func (c *inMemoryCache) onEvict(key interface{}, val []byte) {
+func (c *inMemoryCache) onEvict(key string, val []byte) {
 	c.curSize -= itemSize(val)
 }
 
 // Get retrieves an element based on the provided key.
-func (c *inMemoryCache) Get(key interface{}) []byte {
+func (c *inMemoryCache) Get(_ context.Context, key string) []byte {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	v, ok := c.inner.Get(key)
@@ -103,7 +107,7 @@ func (c *inMemoryCache) Get(key interface{}) []byte {
 
 // Set adds an item to the cache. If the item is too large,
 // the cache evicts older items unitl it fits.
-func (c *inMemoryCache) Set(key interface{}, value []byte) {
+func (c *inMemoryCache) Set(key string, value []byte, _ time.Duration) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -156,7 +160,7 @@ func (c *inMemoryCache) reset() {
 }
 
 // Delete deletes an element in the cache.
-func (c *inMemoryCache) Delete(key interface{}) bool {
+func (c *inMemoryCache) Delete(_ context.Context, key string) bool {
 	return c.inner.Remove(key)
 }
 
@@ -166,6 +170,6 @@ func (c *inMemoryCache) Size() int {
 }
 
 // Keys returns a slice of the keys in the cache, from oldest to newest.
-func (c *inMemoryCache) Keys() []interface{} {
+func (c *inMemoryCache) Keys() []string {
 	return c.inner.Keys()
 }

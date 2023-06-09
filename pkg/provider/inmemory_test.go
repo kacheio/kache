@@ -23,9 +23,11 @@
 package provider
 
 import (
+	"context"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -33,29 +35,32 @@ import (
 func TestInMeoryCache(t *testing.T) {
 	cache, _ := NewInMemoryCache(DefaultInMemoryCacheConfig)
 
-	cache.Set("A", []byte("Alice"))
-	assert.Equal(t, "Alice", string(cache.Get("A")))
-	assert.Nil(t, cache.Get("B"))
+	ctx := context.Background()
+	ttl := time.Duration(120 * time.Second)
+
+	cache.Set("A", []byte("Alice"), ttl)
+	assert.Equal(t, "Alice", string(cache.Get(ctx, "A")))
+	assert.Nil(t, cache.Get(ctx, "B"))
 	assert.Equal(t, 1, cache.Size())
 
-	cache.Set("B", []byte("Bob"))
-	cache.Set("E", []byte("Eve"))
-	cache.Set("G", []byte("Gopher"))
+	cache.Set("B", []byte("Bob"), ttl)
+	cache.Set("E", []byte("Eve"), ttl)
+	cache.Set("G", []byte("Gopher"), ttl)
 	assert.Equal(t, 4, cache.Size())
 
-	assert.Equal(t, "Bob", string(cache.Get("B")))
-	assert.Equal(t, "Eve", string(cache.Get("E")))
-	assert.Equal(t, "Gopher", string(cache.Get("G")))
+	assert.Equal(t, "Bob", string(cache.Get(ctx, "B")))
+	assert.Equal(t, "Eve", string(cache.Get(ctx, "E")))
+	assert.Equal(t, "Gopher", string(cache.Get(ctx, "G")))
 
-	cache.Set("A", []byte("Foo"))
-	assert.Equal(t, "Foo", string(cache.Get("A")))
+	cache.Set("A", []byte("Foo"), ttl)
+	assert.Equal(t, "Foo", string(cache.Get(ctx, "A")))
 
-	cache.Set("B", []byte("Bar"))
-	assert.Equal(t, "Bar", string(cache.Get("B")))
-	assert.Equal(t, "Foo", string(cache.Get("A")))
+	cache.Set("B", []byte("Bar"), ttl)
+	assert.Equal(t, "Bar", string(cache.Get(ctx, "B")))
+	assert.Equal(t, "Foo", string(cache.Get(ctx, "A")))
 
-	cache.Delete("A")
-	assert.Nil(t, cache.Get("A"))
+	cache.Delete(ctx, "A")
+	assert.Nil(t, cache.Get(ctx, "A"))
 }
 
 func TestInMemoryConcurrentAccess(t *testing.T) {
@@ -68,8 +73,10 @@ func TestInMemoryConcurrentAccess(t *testing.T) {
 
 	cache, _ := NewInMemoryCache(DefaultInMemoryCacheConfig)
 
+	ttl := time.Duration(120 * time.Second)
+
 	for k, v := range data {
-		cache.Set(k, []byte(v))
+		cache.Set(k, []byte(v), ttl)
 	}
 
 	ch := make(chan struct{})
@@ -84,8 +91,8 @@ func TestInMemoryConcurrentAccess(t *testing.T) {
 			<-ch
 
 			for j := 0; j < 1000; j++ {
-				cache.Get("A")
-				cache.Set("A", []byte("Arnie"))
+				cache.Get(context.Background(), "A")
+				cache.Set("A", []byte("Arnie"), ttl)
 			}
 		}()
 	}
@@ -101,46 +108,49 @@ func TestInMemoryCacheMaxSize(t *testing.T) {
 	}
 	cache, _ := NewInMemoryCache(config)
 
+	ctx := context.Background()
+	ttl := time.Duration(120 * time.Second)
+
 	// Item exceeds cache size.
 	item := strings.Repeat("A", 129)
-	cache.Set("Large Item", []byte(item))
+	cache.Set("Large Item", []byte(item), ttl)
 	assert.Equal(t, 0, cache.Size())
 	assert.Equal(t, 0, int(cache.(*inMemoryCache).curSize))
 
 	// A in cache.
 	itemA := strings.Repeat("A", 40)
-	cache.Set("ItemA", []byte(itemA))
+	cache.Set("ItemA", []byte(itemA), ttl)
 	assert.Equal(t, 1, cache.Size())
 	assert.Equal(t, 64, int(cache.(*inMemoryCache).curSize))
 
 	// B in cache.
 	itemB := strings.Repeat("B", 40)
-	cache.Set("ItemB", []byte(itemB))
+	cache.Set("ItemB", []byte(itemB), ttl)
 	assert.Equal(t, 2, cache.Size())
 	assert.Equal(t, 128, int(cache.(*inMemoryCache).curSize))
 
 	// C in cache, A evicted.
 	itemC := strings.Repeat("C", 40)
-	cache.Set("ItemC", []byte(itemC))
+	cache.Set("ItemC", []byte(itemC), ttl)
 	assert.Equal(t, 2, cache.Size())
 	assert.Equal(t, 128, int(cache.(*inMemoryCache).curSize))
 
-	assert.Equal(t, "", string(cache.Get("ItemA")))
-	assert.Equal(t, itemC, string(cache.Get("ItemC")))
+	assert.Equal(t, "", string(cache.Get(ctx, "ItemA")))
+	assert.Equal(t, itemC, string(cache.Get(ctx, "ItemC")))
 
 	// C updated with smaller item, no eviction.
 	itemCm := strings.Repeat("c", 20)
-	cache.Set("ItemC", []byte(itemCm))
+	cache.Set("ItemC", []byte(itemCm), ttl)
 	assert.Equal(t, 2, cache.Size())
 	assert.Equal(t, 108, int(cache.(*inMemoryCache).curSize))
-	assert.Equal(t, itemCm, string(cache.Get("ItemC")))
+	assert.Equal(t, itemCm, string(cache.Get(ctx, "ItemC")))
 
 	// C updated with larger item, evction until fit.
 	itemCM := strings.Repeat("C", 64)
-	cache.Set("ItemC", []byte(itemCM))
+	cache.Set("ItemC", []byte(itemCM), ttl)
 	assert.Equal(t, 1, cache.Size())
 	assert.Equal(t, 88, int(cache.(*inMemoryCache).curSize))
-	assert.Equal(t, itemCM, string(cache.Get("ItemC")))
+	assert.Equal(t, itemCM, string(cache.Get(ctx, "ItemC")))
 
 	// Reset
 	cache.(*inMemoryCache).reset()

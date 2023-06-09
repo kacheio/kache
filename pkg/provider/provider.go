@@ -23,6 +23,7 @@
 package provider
 
 import (
+	"context"
 	"time"
 )
 
@@ -31,13 +32,13 @@ import (
 type Provider interface {
 	// Get retrieves an element based on a key, returning nil if the element
 	// does not exist.
-	Get(key interface{}) []byte
+	Get(ctx context.Context, key string) []byte
 
 	// Set adds an element to the cache.
-	Set(key interface{}, value []byte)
+	Set(key string, value []byte, ttl time.Duration)
 
 	// Delete deletes an element in the cache.
-	Delete(key interface{}) bool
+	Delete(ctx context.Context, key string) bool
 
 	// // Iterator returns the iterator into cache.
 	// Iterator() Iterator
@@ -46,7 +47,7 @@ type Provider interface {
 	Size() int
 
 	// Keys returns a slice of cache keys.
-	Keys() []any
+	Keys() []string
 }
 
 // Options control the behavior of the cache.
@@ -79,9 +80,9 @@ type Iterator interface {
 // Entry represents a key-value entry within the map.
 type Entry interface {
 	// Key represents the key.
-	Key() interface{}
+	Key() string
 	// Value represents the value.
-	Value() interface{}
+	Value() []byte
 	// CreateTime represents the time when the entry is created.
 	CreateTime() time.Time
 }

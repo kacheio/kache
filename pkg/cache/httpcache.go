@@ -37,6 +37,8 @@ import (
 
 // TODO: add interface and config.
 
+var DefaultTTL = 120 * time.Second
+
 // HttpCache is the http cache.
 type HttpCache struct {
 	// cache holds the inner caching provider.
@@ -49,8 +51,8 @@ func NewHttpCache(pdr provider.Provider) (*HttpCache, error) {
 }
 
 // FetchResponse fetches a response matching the given request.
-func (c *HttpCache) FetchResponse(_ context.Context, lookup LookupRequest) *LookupResult {
-	if cached := c.cache.Get(lookup.Key.String()); cached != nil {
+func (c *HttpCache) FetchResponse(ctx context.Context, lookup LookupRequest) *LookupResult {
+	if cached := c.cache.Get(ctx, lookup.Key.String()); cached != nil {
 		entry, err := DecodeEntry(cached)
 		if err != nil {
 			return &LookupResult{}
@@ -80,12 +82,12 @@ func (c *HttpCache) StoreResponse(_ context.Context, lookup *LookupRequest, resp
 	if err != nil {
 		return
 	}
-	c.cache.Set(lookup.Key.String(), data)
+	c.cache.Set(lookup.Key.String(), data, DefaultTTL)
 }
 
 // Deletes deletes the response matching the request key from the cache.
-func (c *HttpCache) Delete(_ context.Context, lookup *LookupRequest) {
-	c.cache.Delete(lookup.Key.String())
+func (c *HttpCache) Delete(ctx context.Context, lookup *LookupRequest) {
+	c.cache.Delete(ctx, lookup.Key.String())
 }
 
 // LookupRequest holds the context for looking up a request.

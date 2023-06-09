@@ -23,8 +23,10 @@
 package provider
 
 import (
+	"context"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -32,29 +34,32 @@ import (
 func TestSimpleCache(t *testing.T) {
 	cache, _ := NewSimpleCache(nil)
 
-	cache.Set("A", []byte("Alice"))
-	assert.Equal(t, "Alice", string(cache.Get("A")))
-	assert.Nil(t, cache.Get("B"))
+	ctx := context.Background()
+	ttl := time.Duration(120 * time.Second)
+
+	cache.Set("A", []byte("Alice"), ttl)
+	assert.Equal(t, "Alice", string(cache.Get(ctx, "A")))
+	assert.Nil(t, cache.Get(ctx, "B"))
 	assert.Equal(t, 1, cache.Size())
 
-	cache.Set("B", []byte("Bob"))
-	cache.Set("E", []byte("Eve"))
-	cache.Set("G", []byte("Gopher"))
+	cache.Set("B", []byte("Bob"), ttl)
+	cache.Set("E", []byte("Eve"), ttl)
+	cache.Set("G", []byte("Gopher"), ttl)
 	assert.Equal(t, 4, cache.Size())
 
-	assert.Equal(t, "Bob", string(cache.Get("B")))
-	assert.Equal(t, "Eve", string(cache.Get("E")))
-	assert.Equal(t, "Gopher", string(cache.Get("G")))
+	assert.Equal(t, "Bob", string(cache.Get(ctx, "B")))
+	assert.Equal(t, "Eve", string(cache.Get(ctx, "E")))
+	assert.Equal(t, "Gopher", string(cache.Get(ctx, "G")))
 
-	cache.Set("A", []byte("Foo"))
-	assert.Equal(t, "Foo", string(cache.Get("A")))
+	cache.Set("A", []byte("Foo"), ttl)
+	assert.Equal(t, "Foo", string(cache.Get(ctx, "A")))
 
-	cache.Set("B", []byte("Bar"))
-	assert.Equal(t, "Bar", string(cache.Get("B")))
-	assert.Equal(t, "Foo", string(cache.Get("A")))
+	cache.Set("B", []byte("Bar"), ttl)
+	assert.Equal(t, "Bar", string(cache.Get(ctx, "B")))
+	assert.Equal(t, "Foo", string(cache.Get(ctx, "A")))
 
-	cache.Delete("A")
-	assert.Nil(t, cache.Get("A"))
+	cache.Delete(ctx, "A")
+	assert.Nil(t, cache.Get(ctx, "A"))
 }
 
 func TestSimpleCacheConcurrentAccess(t *testing.T) {
@@ -67,8 +72,10 @@ func TestSimpleCacheConcurrentAccess(t *testing.T) {
 
 	cache, _ := NewSimpleCache(nil)
 
+	ttl := time.Duration(120 * time.Second)
+
 	for k, v := range data {
-		cache.Set(k, []byte(v))
+		cache.Set(k, []byte(v), ttl)
 	}
 
 	ch := make(chan struct{})
@@ -83,8 +90,8 @@ func TestSimpleCacheConcurrentAccess(t *testing.T) {
 			<-ch
 
 			for j := 0; j < 1000; j++ {
-				cache.Get("A")
-				cache.Set("A", []byte("Arnie"))
+				cache.Get(context.Background(), "A")
+				cache.Set("A", []byte("Arnie"), ttl)
 			}
 		}()
 	}
