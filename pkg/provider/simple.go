@@ -24,9 +24,12 @@ package provider
 
 import (
 	"container/list"
+	"context"
 	"sync"
 	"time"
 )
+
+var _ Provider = (*simpleCache)(nil)
 
 var (
 	// DefaultCreateTime is the create time used by all entries in the cache.
@@ -38,7 +41,7 @@ var (
 // Not suitable for production use!
 type simpleCache struct {
 	mu          sync.RWMutex
-	entryMap    map[interface{}]*list.Element
+	entryMap    map[string]*list.Element
 	iterateList *list.List
 }
 
@@ -50,13 +53,13 @@ func NewSimpleCache(opts *SimpleOptions) (Provider, error) {
 	}
 	cache := &simpleCache{
 		iterateList: list.New(),
-		entryMap:    make(map[interface{}]*list.Element, opts.InitialCapacity),
+		entryMap:    make(map[string]*list.Element, opts.InitialCapacity),
 	}
 	return cache, nil
 }
 
 // Get retrieves the value with specified key.
-func (c *simpleCache) Get(key interface{}) []byte {
+func (c *simpleCache) Get(_ context.Context, key string) []byte {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -68,14 +71,14 @@ func (c *simpleCache) Get(key interface{}) []byte {
 }
 
 // Set sets a new value associated with the given key, returning the existing value (if present).
-func (c *simpleCache) Set(key interface{}, val []byte) {
+func (c *simpleCache) Set(key string, val []byte, _ time.Duration) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.entryMap[key] = c.iterateList.PushFront(val)
 }
 
 // Delete deletes the key/value associated with th given key.
-func (c *simpleCache) Delete(key interface{}) bool {
+func (c *simpleCache) Delete(_ context.Context, key string) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -97,8 +100,8 @@ func (c *simpleCache) Size() int {
 }
 
 // Keys returns a slice of the keys in the cache.
-func (c *simpleCache) Keys() []any {
-	keys := make([]interface{}, len(c.entryMap))
+func (c *simpleCache) Keys() []string {
+	keys := make([]string, len(c.entryMap))
 	i := 0
 	for k := range c.entryMap {
 		keys[i] = k
