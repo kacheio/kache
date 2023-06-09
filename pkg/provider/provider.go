@@ -50,6 +50,23 @@ type Provider interface {
 	Keys() []string
 }
 
+// RemoteCacheClient is a generalized interface to interact with a remote cache.
+type RemoteCacheClient interface {
+	// Fetch fetches a key from the remote cache.
+	// Returns nil if an error occurs.
+	Fetch(ctx context.Context, keys string) []byte
+
+	// Store stores a key and value into the the remote cache.
+	// Returns an error in case the operation fails.
+	Store(key string, value []byte, ttl time.Duration) error
+
+	// Delete deletes a key from the remote cache.
+	Delete(ctx context.Context, key string) error
+
+	// Stop closes the client connection.
+	Stop()
+}
+
 // Options control the behavior of the cache.
 type Options struct {
 	// TTL controls the time-to-live for a given cache entry.
