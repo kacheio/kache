@@ -73,6 +73,9 @@ func NewRedisClient(name string, config RedisClientConfig) (RemoteCacheClient, e
 		UniversalClient: redis.NewUniversalClient(opts),
 		config:          config,
 	}
+	if err := c.Ping(context.Background()).Err(); err != nil {
+		return nil, err
+	}
 	return c, nil
 }
 
