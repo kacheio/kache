@@ -65,9 +65,20 @@ type InMemoryCacheConfig struct {
 	MaxItemSize uint64 `yaml:"max_item_size"`
 }
 
+// Sanitize checks the config and adds defaults to missing values.
+func (c *InMemoryCacheConfig) Sanitize() {
+	if c.MaxSize == 0 {
+		c.MaxSize = DefaultInMemoryCacheConfig.MaxSize
+	}
+	if c.MaxItemSize == 0 {
+		c.MaxItemSize = DefaultInMemoryCacheConfig.MaxItemSize
+	}
+}
+
 // NewInMemoryCache creates a new thread-safe LRU in memory cache.
 // It ensures the total cache size approximately does not exceed maxBytes.
 func NewInMemoryCache(config InMemoryCacheConfig) (Provider, error) {
+	config.Sanitize()
 	if config.MaxItemSize > config.MaxSize {
 		return nil, fmt.Errorf("max item size (%v) must not exceed overall cache size (%v)",
 			config.MaxItemSize, config.MaxSize)
