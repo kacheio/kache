@@ -64,7 +64,7 @@ func setup(t *testing.T) {
 	ts.Update(time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC))
 
 	p, _ := provider.NewSimpleCache(nil)
-	h, _ := cache.NewHttpCache(&cache.HttpCacheConfig{}, p)
+	h, _ := cache.NewHttpCache(p)
 	tp := NewCachedTransport(h)
 	tp.currentTime = currentTime
 
