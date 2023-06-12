@@ -36,7 +36,7 @@ import (
 
 // Kache is the root data structure for Kache.
 type Kache struct {
-	Cfg config.Configuration
+	Config config.Configuration
 
 	API      *api.API
 	Server   *server.Server
@@ -46,7 +46,7 @@ type Kache struct {
 // New makes a new Kache.
 func New(cfg config.Configuration) (*Kache, error) {
 	kache := &Kache{
-		Cfg: cfg,
+		Config: cfg,
 	}
 
 	if err := kache.setupModules(); err != nil {
@@ -58,7 +58,7 @@ func New(cfg config.Configuration) (*Kache, error) {
 
 // initAPI initializes the public API.
 func (t *Kache) initAPI() (err error) {
-	t.API, err = api.New(*t.Cfg.API)
+	t.API, err = api.New(*t.Config.API)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (t *Kache) initAPI() (err error) {
 
 // initServer initializes the core server.
 func (t *Kache) initServer() (err error) {
-	t.Server, err = server.NewServer(&t.Cfg, *t.Provider)
+	t.Server, err = server.NewServer(&t.Config, *t.Provider)
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ func (t *Kache) initServer() (err error) {
 
 // initProvider initializes the cache provider.
 func (t *Kache) initProvider() error {
-	p, err := provider.NewInMemoryCache(provider.DefaultInMemoryCacheConfig)
+	p, err := provider.CreateCacheProvider("kache", *t.Config.Provider)
 	if err != nil {
 		return err
 	}
