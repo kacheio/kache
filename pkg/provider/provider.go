@@ -24,6 +24,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"time"
 )
 
@@ -48,6 +49,23 @@ type Provider interface {
 
 	// Keys returns a slice of cache keys.
 	Keys() []string
+}
+
+// RemoteCacheClient is a generalized interface to interact with a remote cache.
+type RemoteCacheClient interface {
+	// Fetch fetches a key from the remote cache.
+	// Returns nil if an error occurs.
+	Fetch(ctx context.Context, keys string) []byte
+
+	// Store stores a key and value into the the remote cache.
+	// Returns an error in case the operation fails.
+	Store(key string, value []byte, ttl time.Duration) error
+
+	// Delete deletes a key from the remote cache.
+	Delete(ctx context.Context, key string) error
+
+	// Stop closes the client connection.
+	Stop()
 }
 
 // Options control the behavior of the cache.
@@ -85,4 +103,34 @@ type Entry interface {
 	Value() []byte
 	// CreateTime represents the time when the entry is created.
 	CreateTime() time.Time
+}
+
+const (
+	BackendInMemory = "inmemory"
+	BackendRedis    = "redis"
+)
+
+var errUnsupportedCacheBackend = errors.New("unsupported cache backend")
+
+// ProviderBackendConfig holds the configuration for the caching provider backend.
+type ProviderBackendConfig struct {
+	Backend  string              `yaml:"backend"`
+	InMemory InMemoryCacheConfig `yaml:"inmemory"`
+	Redis    RedisClientConfig   `yaml:"redis"`
+}
+
+// CreateCacheProvider creates a cache backend based on the provided configuration.
+func CreateCacheProvider(name string, config ProviderBackendConfig) (Provider, error) {
+	switch config.Backend {
+	case BackendInMemory:
+		return NewInMemoryCache(config.InMemory)
+	case BackendRedis:
+		client, err := NewRedisClient(name, config.Redis)
+		if err != nil {
+			return nil, errors.Join(err, errors.New("failed to create redis client"))
+		}
+		return NewRedisCache(name, client), nil
+	default:
+		return nil, errUnsupportedCacheBackend
+	}
 }
