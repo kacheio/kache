@@ -30,6 +30,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kacheio/kache/pkg/cache"
 	"github.com/kacheio/kache/pkg/provider"
 	"github.com/kacheio/kache/pkg/utils/clock"
 	"github.com/stretchr/testify/assert"
@@ -63,7 +64,8 @@ func setup(t *testing.T) {
 	ts.Update(time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC))
 
 	p, _ := provider.NewSimpleCache(nil)
-	tp := NewCachedTransport(p)
+	h, _ := cache.NewHttpCache(&cache.HttpCacheConfig{}, p)
+	tp := NewCachedTransport(h)
 	tp.currentTime = currentTime
 
 	client := http.Client{Transport: tp}
