@@ -39,7 +39,7 @@ type Configuration struct {
 	Listeners Listeners `yaml:"listeners"`
 	Upstreams Upstreams `yaml:"upstreams"`
 
-	Provider  *provider.ProviderBackendConfig `yaml:"provider"`
+	Provider *provider.ProviderBackendConfig `yaml:"provider"`
 
 	API *API `yaml:"api"`
 	Log *Log `yaml:"logging"`
