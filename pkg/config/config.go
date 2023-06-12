@@ -24,6 +24,7 @@ package config
 
 import (
 	"errors"
+	"github.com/kacheio/kache/pkg/provider"
 )
 
 var (
@@ -37,6 +38,8 @@ var (
 type Configuration struct {
 	Listeners Listeners `yaml:"listeners"`
 	Upstreams Upstreams `yaml:"upstreams"`
+
+	Provider *provider.ProviderBackendConfig `yaml:"provider"`
 
 	API *API `yaml:"api"`
 	Log *Log `yaml:"logging"`

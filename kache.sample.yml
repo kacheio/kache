@@ -1,29 +1,16 @@
-################################################################
-#
-# Configuration sample for Kache.
-#
-################################################################
+## Sample configuration fo kache.
 
-################################################################
-# Global configuration
-################################################################
+## Global configuration
+## TODO
 
-# TODO
-
-################################################################
-# Listeners configuration
-################################################################
-
+## Listeners configuration
 listeners:
   web1:
     addr: :80
   web2:
     addr: :1337
 
-################################################################
-# Upstream configuration
-################################################################
-
+## Upstream configuration
 upstreams:
   - name: service1
     addr: "http://localhost:8000"
@@ -33,37 +20,36 @@ upstreams:
     addr: "http://example.com"
     path: "/"
 
-################################################################
-# API configuration
-################################################################
-
-api: # admin
+## API configuration
+api: # admin api
   port: 1338
   debug: true
   # path:
 
-################################################################
-# Logs configuration
-################################################################
-
+## Loggging configuration
 logging:
   level: debug
   # filePath: logs/log
 
-################################################################
-# Cache configuration
-################################################################
+## Cache configuration
+## TODO
 
-# TODO
+## Cache provider configuration
+provider:
+  # activate specified provider backend
+  backend: redis
 
-################################################################
-# Cluster configuration
-################################################################
+  # redis client configuration
+  redis:
+    endpoint: "localhost:6379"
+    username:
+    password:
+    db:
 
-# TODO
-
-################################################################
-# Provider configuration
-################################################################
-
-# TODO
+  # in-memory cache configuration
+  inmemory:
+    max_size:
+    max_item_size:
+    
+## Cluster configuration
+## TODO

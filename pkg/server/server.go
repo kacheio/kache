@@ -33,6 +33,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kacheio/kache/pkg/cache"
 	"github.com/kacheio/kache/pkg/config"
 	"github.com/kacheio/kache/pkg/provider"
 	"github.com/kacheio/kache/pkg/server/middleware"
@@ -60,8 +61,11 @@ type Server struct {
 	// targets holds the upstream targets.
 	targets Targets
 
-	// cache holds the provider for storing responses.
+	// cache is the caching backend provider.
 	cache provider.Provider
+
+	// httpcache holds the Http cache.
+	httpcache *cache.HttpCache
 
 	stopCh chan bool
 }
@@ -88,13 +92,18 @@ func NewServer(cfg *config.Configuration, pdr provider.Provider) (*Server, error
 	}
 	srv.listeners = listeners
 
-	t := middleware.NewCachedTransport(pdr)
+	// Build the HTTP cache with caching provider.
+	httpcache, err := cache.NewHttpCache(pdr)
+	if err != nil {
+		return nil, err
+	}
+	srv.httpcache = httpcache
 
 	// Create the reverse proxy.
 	proxy := &httputil.ReverseProxy{
 		ErrorHandler: errorHandler,
-		Director: srv.Director(),
-		Transport: t,
+		Director:     srv.Director(),
+		Transport:    middleware.NewCachedTransport(httpcache),
 	}
 	srv.proxy = proxy
 

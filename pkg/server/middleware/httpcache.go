@@ -28,7 +28,6 @@ import (
 	"time"
 
 	"github.com/kacheio/kache/pkg/cache"
-	"github.com/kacheio/kache/pkg/provider"
 	"github.com/rs/zerolog/log"
 )
 
@@ -54,11 +53,7 @@ type Transport struct {
 }
 
 // NewTransport returns a new Transport with the provided Cache implementation.
-func NewCachedTransport(p provider.Provider) *Transport {
-	c, err := cache.NewHttpCache(p)
-	if err != nil {
-		return nil
-	}
+func NewCachedTransport(c *cache.HttpCache) *Transport {
 	return &Transport{Cache: c, MarkCachedResponses: true, currentTime: time.Now}
 }
 
