@@ -37,17 +37,41 @@ import (
 
 // TODO: add interface and config.
 
+// DefaultTTL is the default time-to-live for cache entries.
 var DefaultTTL = 120 * time.Second
+
+// HttpCacheConfig holds the http cache configuration.
+type HttpCacheConfig struct {
+	// XCache specifies if the XCache debug header should be attached to responses.
+	// If the response exists in the cache the header value is HIT, MISS otherwise.
+	XCache bool `yaml:"x_header"`
+
+	// XCacheName is the name of the X-Cache header.
+	XCacheName string `yaml:"x_header_name"`
+
+	// Default TTL is the default TTL for cache entries. Overrides 'DefaultTTL'.
+	DefaultTTL string `yaml:"default_ttl"`
+}
 
 // HttpCache is the http cache.
 type HttpCache struct {
+	// config is the http cache configuration.
+	config *HttpCacheConfig
+
 	// cache holds the inner caching provider.
 	cache provider.Provider
 }
 
 // NewHttpCache creates a new http cache.
-func NewHttpCache(pdr provider.Provider) (*HttpCache, error) {
-	return &HttpCache{pdr}, nil
+func NewHttpCache(config *HttpCacheConfig, pdr provider.Provider) (*HttpCache, error) {
+	cfg := &HttpCacheConfig{}
+	if config != nil {
+		cfg = config
+
+	}
+	return &HttpCache{cfg, pdr}, nil
+}
+
 }
 
 // FetchResponse fetches a response matching the given request.
