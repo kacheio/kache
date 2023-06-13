@@ -1,0 +1,17 @@
+services:
+
+  kache:
+    image: kacheio/kache:main
+    container_name: kache
+    command:
+      - "-config.file=/etc/kache/kache.sample.yml"
+    ports:
+      - "80:80"
+      - "8080:8080"
+      - "1337:1337"
+      - "1338:1338"
+    volumes:
+      - "./../kache.sample.yml:/etc/kache/kache.sample.yml"
+
+  redis:
+    image: "redis:alpine"
