@@ -122,21 +122,22 @@ func (c *HttpCache) FetchResponse(ctx context.Context, lookup LookupRequest) *Lo
 }
 
 // StoreResponse stores a response in the cache.
-func (c *HttpCache) StoreResponse(_ context.Context, lookup *LookupRequest, response *http.Response) {
-	res, err := httputil.DumpResponse(response, true)
+func (c *HttpCache) StoreResponse(_ context.Context, lookup *LookupRequest,
+	response *http.Response, responseTime time.Time) {
+	resp, err := httputil.DumpResponse(response, true)
 	if err != nil {
 		// TODO: handle errors
 		return
 	}
 	entry := &Entry{
-		Body:      res,
-		Timestamp: lookup.Timestamp.Unix(),
+		Body:      resp,
+		Timestamp: responseTime.Unix(),
 	}
-	data, err := entry.Encode()
+	enc, err := entry.Encode()
 	if err != nil {
 		return
 	}
-	c.cache.Set(lookup.Key.String(), data, DefaultTTL)
+	c.cache.Set(lookup.Key.String(), enc, c.DefaultTTL())
 }
 
 // Deletes deletes the response matching the request key from the cache.
