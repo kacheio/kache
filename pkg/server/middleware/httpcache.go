@@ -105,7 +105,7 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	// Store new or update validated response.
 	if cache.IsCacheableResponse(resp) && shouldUpdateCachedEntry &&
 		!lookup.ReqCacheControl.NoStore && lookup.Request.Method != "HEAD" {
-		t.Cache.StoreResponse(context.Background(), lookup, resp)
+		t.Cache.StoreResponse(context.Background(), lookup, resp, t.currentTime())
 	} else {
 		t.Cache.Delete(ctx, lookup)
 	}
