@@ -35,7 +35,13 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// TODO: add interface and config.
+// TODO: add interface.
+
+const (
+	xCache = "X-Kache"
+	HIT    = "HIT"
+	MISS   = "MISS"
+)
 
 // DefaultTTL is the default time-to-live for cache entries.
 var DefaultTTL = 120 * time.Second
@@ -72,6 +78,30 @@ func NewHttpCache(config *HttpCacheConfig, pdr provider.Provider) (*HttpCache, e
 	return &HttpCache{cfg, pdr}, nil
 }
 
+// MarkCachedResponses returns true if cached responses should be marked.
+func (c *HttpCache) MarkCachedResponses() bool {
+	return c.config.XCache
+}
+
+// XCacheHeader returns the XCache debug header key.
+func (c *HttpCache) XCacheHeader() string {
+	if c.config.XCacheName == "" {
+		return xCache
+	}
+	return c.config.XCacheName
+}
+
+// DefaultTTL returns the TTL as specified in the configuration as a valid duration
+// in seconds. If not specified, the default value is returned.
+func (c *HttpCache) DefaultTTL() time.Duration {
+	if c.config.DefaultTTL == "" {
+		return DefaultTTL
+	}
+	t, err := time.ParseDuration(c.config.DefaultTTL)
+	if err != nil {
+		return DefaultTTL
+	}
+	return t
 }
 
 // FetchResponse fetches a response matching the given request.

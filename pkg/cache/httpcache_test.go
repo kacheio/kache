@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLookupRequest(t *testing.T) {
@@ -278,4 +279,34 @@ func TestNoCachePragmaFallbackIgnored(t *testing.T) {
 
 	// Response is fresh; Cache-Control prioritized over Pragma.
 	assert.Equal(t, EntryOk, result.Status)
+}
+
+func TestHttpCacheDefaultConfig(t *testing.T) {
+	c, err := NewHttpCache(nil, nil)
+	require.NoError(t, err)
+
+	assert.Equal(t, "", c.config.DefaultTTL)
+	assert.Equal(t, time.Duration(DefaultTTL), c.DefaultTTL())
+
+	assert.Equal(t, false, c.config.XCache)
+	assert.Equal(t, xCache, c.XCacheHeader())
+
+	assert.Equal(t, false, c.MarkCachedResponses())
+}
+
+func TestHttpCacheDefaultTTL(t *testing.T) {
+	c, err := NewHttpCache(&HttpCacheConfig{
+		DefaultTTL: "3600s",
+	}, nil)
+	require.NoError(t, err)
+	assert.Equal(t, "3600s", c.config.DefaultTTL)
+	assert.Equal(t, time.Duration(3600*time.Second), c.DefaultTTL())
+}
+
+func TestHttpCacheXCacheHeader(t *testing.T) {
+	c, err := NewHttpCache(&HttpCacheConfig{
+		XCacheName: "X-Test",
+	}, nil)
+	require.NoError(t, err)
+	assert.Equal(t, "X-Test", c.XCacheHeader())
 }

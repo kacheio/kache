@@ -93,7 +93,7 @@ func NewServer(cfg *config.Configuration, pdr provider.Provider) (*Server, error
 	srv.listeners = listeners
 
 	// Build the HTTP cache with caching provider.
-	httpcache, err := cache.NewHttpCache(pdr)
+	httpcache, err := cache.NewHttpCache(cfg.HttpCache, pdr)
 	if err != nil {
 		return nil, err
 	}
