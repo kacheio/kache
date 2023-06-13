@@ -24,6 +24,8 @@ package config
 
 import (
 	"errors"
+
+	"github.com/kacheio/kache/pkg/cache"
 	"github.com/kacheio/kache/pkg/provider"
 )
 
@@ -39,7 +41,8 @@ type Configuration struct {
 	Listeners Listeners `yaml:"listeners"`
 	Upstreams Upstreams `yaml:"upstreams"`
 
-	Provider *provider.ProviderBackendConfig `yaml:"provider"`
+	HttpCache *cache.HttpCacheConfig          `yaml:"cache"`
+	Provider  *provider.ProviderBackendConfig `yaml:"provider"`
 
 	API *API `yaml:"api"`
 	Log *Log `yaml:"logging"`

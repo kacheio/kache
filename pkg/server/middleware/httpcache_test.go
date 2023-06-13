@@ -37,6 +37,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	XCache = "X-Kache"
+)
+
 var s struct {
 	client    http.Client
 	mux       *http.ServeMux
@@ -64,7 +68,10 @@ func setup(t *testing.T) {
 	ts.Update(time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC))
 
 	p, _ := provider.NewSimpleCache(nil)
-	h, _ := cache.NewHttpCache(p)
+	h, _ := cache.NewHttpCache(&cache.HttpCacheConfig{
+		XCache:     true,
+		XCacheName: XCache,
+	}, p)
 	tp := NewCachedTransport(h)
 	tp.currentTime = currentTime
 

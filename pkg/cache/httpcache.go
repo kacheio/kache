@@ -35,19 +35,73 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// TODO: add interface and config.
+// TODO: add interface.
 
+const (
+	xCache = "X-Kache"
+	HIT    = "HIT"
+	MISS   = "MISS"
+)
+
+// DefaultTTL is the default time-to-live for cache entries.
 var DefaultTTL = 120 * time.Second
+
+// HttpCacheConfig holds the http cache configuration.
+type HttpCacheConfig struct {
+	// XCache specifies if the XCache debug header should be attached to responses.
+	// If the response exists in the cache the header value is HIT, MISS otherwise.
+	XCache bool `yaml:"x_header"`
+
+	// XCacheName is the name of the X-Cache header.
+	XCacheName string `yaml:"x_header_name"`
+
+	// Default TTL is the default TTL for cache entries. Overrides 'DefaultTTL'.
+	DefaultTTL string `yaml:"default_ttl"`
+}
 
 // HttpCache is the http cache.
 type HttpCache struct {
+	// config is the http cache configuration.
+	config *HttpCacheConfig
+
 	// cache holds the inner caching provider.
 	cache provider.Provider
 }
 
 // NewHttpCache creates a new http cache.
-func NewHttpCache(pdr provider.Provider) (*HttpCache, error) {
-	return &HttpCache{pdr}, nil
+func NewHttpCache(config *HttpCacheConfig, pdr provider.Provider) (*HttpCache, error) {
+	cfg := &HttpCacheConfig{}
+	if config != nil {
+		cfg = config
+
+	}
+	return &HttpCache{cfg, pdr}, nil
+}
+
+// MarkCachedResponses returns true if cached responses should be marked.
+func (c *HttpCache) MarkCachedResponses() bool {
+	return c.config.XCache
+}
+
+// XCacheHeader returns the XCache debug header key.
+func (c *HttpCache) XCacheHeader() string {
+	if c.config.XCacheName == "" {
+		return xCache
+	}
+	return c.config.XCacheName
+}
+
+// DefaultTTL returns the TTL as specified in the configuration as a valid duration
+// in seconds. If not specified, the default value is returned.
+func (c *HttpCache) DefaultTTL() time.Duration {
+	if c.config.DefaultTTL == "" {
+		return DefaultTTL
+	}
+	t, err := time.ParseDuration(c.config.DefaultTTL)
+	if err != nil {
+		return DefaultTTL
+	}
+	return t
 }
 
 // FetchResponse fetches a response matching the given request.

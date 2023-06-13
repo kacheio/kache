@@ -31,11 +31,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const (
-	XCache = "X-Kache"
-	HIT    = "HIT"
-)
-
 // Transport is the http filter implementing the http caching logic.
 type Transport struct {
 	// The RoundTripper interface actually used to make requests.
@@ -45,16 +40,13 @@ type Transport struct {
 	// Cache is the http cache.
 	Cache *cache.HttpCache
 
-	// If true, responses returned from the cache will be given an extra header.
-	MarkCachedResponses bool
-
 	// currentTime holds the time source.
 	currentTime func() time.Time
 }
 
 // NewTransport returns a new Transport with the provided Cache implementation.
 func NewCachedTransport(c *cache.HttpCache) *Transport {
-	return &Transport{Cache: c, MarkCachedResponses: true, currentTime: time.Now}
+	return &Transport{Cache: c, currentTime: time.Now}
 }
 
 // RoundTrip issues a http roundtrip and applies the http caching logic.
@@ -62,6 +54,9 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 
 	if !cache.IsCacheableRequest(req) {
 		log.Debug().Msgf("Ignoring uncachable request: %v", req)
+		if t.Cache.MarkCachedResponses() {
+			req.Header.Set(t.Cache.XCacheHeader(), cache.MISS)
+		}
 		return t.send(req)
 	}
 
@@ -73,8 +68,10 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 		return t.handleCacheHit(cached)
 
 	case cache.EntryRequiresValidation:
+		if t.Cache.MarkCachedResponses() {
+			cached.Header().Set(t.Cache.XCacheHeader(), cache.HIT)
+		}
 		log.Debug().Msgf("Cache HIT with validation: %v", cached.Response())
-		cached.Header().Set(XCache, HIT)
 		req = t.injectValidationHeaders(lookup.Request, cached.Header())
 	}
 
@@ -118,7 +115,7 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 // handleCacheHit handles a cache hit and sends the cached response downstream.
 func (t *Transport) handleCacheHit(cached *cache.LookupResult) (*http.Response, error) {
 	log.Debug().Msgf("Cache HIT: %v", cached.Response())
-	cached.Header().Set(XCache, HIT)
+	cached.Header().Set(t.Cache.XCacheHeader(), cache.HIT)
 	return cached.Response(), nil
 }
 

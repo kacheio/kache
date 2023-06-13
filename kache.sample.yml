@@ -32,7 +32,10 @@ logging:
   # filePath: logs/log
 
 ## Cache configuration
-## TODO
+cache:
+  x_header: true
+  x_header_name: x-kache
+  default_ttl: 120s
 
 ## Cache provider configuration
 provider:
