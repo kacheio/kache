@@ -51,6 +51,7 @@ func NewCachedTransport(c *cache.HttpCache) *Transport {
 
 // RoundTrip issues a http roundtrip and applies the http caching logic.
 func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
+	ctx := req.Context()
 
 	if !cache.IsCacheableRequest(req) {
 		log.Debug().Msgf("Ignoring uncachable request: %v", req)
@@ -61,7 +62,7 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	}
 
 	lookup := cache.NewLookupRequest(req, t.currentTime())
-	cached := t.Cache.FetchResponse(context.Background(), *lookup)
+	cached := t.Cache.FetchResponse(ctx, *lookup)
 
 	switch cached.Status {
 	case cache.EntryOk:
@@ -104,9 +105,9 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	// Store new or update validated response.
 	if cache.IsCacheableResponse(resp) && shouldUpdateCachedEntry &&
 		!lookup.ReqCacheControl.NoStore && lookup.Request.Method != "HEAD" {
-		t.Cache.StoreResponse(context.TODO(), lookup, resp)
+		t.Cache.StoreResponse(context.Background(), lookup, resp)
 	} else {
-		t.Cache.Delete(context.TODO(), lookup)
+		t.Cache.Delete(ctx, lookup)
 	}
 
 	return resp, nil
