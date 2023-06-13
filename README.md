@@ -12,7 +12,7 @@ For guidance on installation, development, deployment, and administration, see t
 
 ## Running kache
 
-Get the latest binary from the [releases](https://github.com/kacheio/kache/releases) page and run it with the [sample configuration file](https://github.com/kacheio/kache/blob/main/kache.sample.yml):
+To run kache, get the latest binary from the [releases](https://github.com/kacheio/kache/releases) page and run it with the [sample configuration file](https://github.com/kacheio/kache/blob/main/kache.sample.yml):
 ```
 ./kache -config.file=kache.yml
 ```
@@ -33,7 +33,7 @@ If you want to run kache with a distributed caching backend (e.g. Redis), you ca
 docker-compose -f cloud/docker-compose.yml up 
 ```
 
-## Contibuting 
+## Contributing 
 
 We welcome contributions! If you're looking for issues to work on, we're happy to help. To get in touch, report bugs, suggest improvements, or request new features, help us by [opening an issue](https://github.com/kacheio/kache/issues/new). 
 
