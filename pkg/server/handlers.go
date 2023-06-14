@@ -31,7 +31,7 @@ import (
 
 // CacheKeysHandler renders all cache keys in JSON format.
 func (s *Server) CacheKeysHandler(w http.ResponseWriter, r *http.Request) {
-	keys := s.cache.Keys()
+	keys := s.cache.Keys(r.Context(), "")
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(keys); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

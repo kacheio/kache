@@ -166,3 +166,21 @@ func TestInMemoryCacheConfigMaxItemSizeTooBig(t *testing.T) {
 	_, err := NewInMemoryCache(config)
 	assert.Error(t, err)
 }
+
+func TestKeys(t *testing.T) {
+	cache, err := NewInMemoryCache(DefaultInMemoryCacheConfig)
+	assert.NoError(t, err)
+
+	ctx := context.Background()
+	ttl := time.Duration(120 * time.Second)
+
+	cache.Set("B", []byte("B"), ttl)
+	cache.Set("E", []byte("E"), ttl)
+	cache.Set("G", []byte("G"), ttl)
+
+	assert.Equal(t, []string{"B", "E", "G"}, cache.Keys(ctx, ""))
+
+	cache.Set("Foo:B", []byte("Foo:Bar"), ttl)
+	cache.Set("Bar:F", []byte("Bar:Foo"), ttl)
+	assert.Equal(t, []string{"Foo:B"}, cache.Keys(ctx, "Foo:"))
+}

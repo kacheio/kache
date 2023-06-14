@@ -100,7 +100,7 @@ func (c *simpleCache) Size() int {
 }
 
 // Keys returns a slice of the keys in the cache.
-func (c *simpleCache) Keys() []string {
+func (c *simpleCache) Keys(_ context.Context, _ string) []string {
 	keys := make([]string, len(c.entryMap))
 	i := 0
 	for k := range c.entryMap {
