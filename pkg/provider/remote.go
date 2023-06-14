@@ -81,4 +81,6 @@ func (c *remoteCache) Size() int { return -1 }
 
 // Keys returns a slice of cache keys.
 // TODO: not implement yet.
-func (c *remoteCache) Keys() []string { return nil }
+func (c *remoteCache) Keys(ctx context.Context, prefix string) []string {
+	return c.client.Keys(ctx, prefix)
+}

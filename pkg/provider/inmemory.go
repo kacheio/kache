@@ -25,6 +25,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -181,6 +182,16 @@ func (c *inMemoryCache) Size() int {
 }
 
 // Keys returns a slice of the keys in the cache, from oldest to newest.
-func (c *inMemoryCache) Keys() []string {
-	return c.inner.Keys()
+func (c *inMemoryCache) Keys(_ context.Context, prefix string) []string {
+	if prefix == "" {
+		return c.inner.Keys()
+	}
+	var keys []string
+	for _, k := range c.inner.Keys() {
+		if !strings.HasPrefix(k, prefix) {
+			continue
+		}
+		keys = append(keys, k)
+	}
+	return keys
 }

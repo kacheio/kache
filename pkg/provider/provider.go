@@ -44,11 +44,11 @@ type Provider interface {
 	// // Iterator returns the iterator into cache.
 	// Iterator() Iterator
 
+	// Keys returns a slice of cache keys.
+	Keys(ctx context.Context, prefix string) []string
+
 	// Size returns the number of entries currently stored in the Cache.
 	Size() int
-
-	// Keys returns a slice of cache keys.
-	Keys() []string
 }
 
 // RemoteCacheClient is a generalized interface to interact with a remote cache.
@@ -64,8 +64,15 @@ type RemoteCacheClient interface {
 	// Delete deletes a key from the remote cache.
 	Delete(ctx context.Context, key string) error
 
+	// Keys returns a slice of cache keys.
+	Keys(ctx context.Context, prefix string) []string
+
 	// Stop closes the client connection.
 	Stop()
+
+	// TODO: add iterator and to replace Keys(..).
+	// Iterator returns the iterator into cache.
+	// Iterator() Iterator
 }
 
 // Options control the behavior of the cache.

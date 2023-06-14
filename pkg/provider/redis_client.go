@@ -103,6 +103,19 @@ func (c *redisClient) Delete(ctx context.Context, key string) error {
 	return c.Del(ctx, key).Err()
 }
 
+// Keys returns a slice of cache keys.
+func (c *redisClient) Keys(ctx context.Context, prefix string) []string {
+	var keys []string
+	iter := c.Scan(ctx, 0, prefix+"*", 0).Iterator()
+	for iter.Next(ctx) {
+		keys = append(keys, iter.Val())
+	}
+	if err := iter.Err(); err != nil {
+		panic(err)
+	}
+	return keys
+}
+
 // Stop client and release resources.
 func (c *redisClient) Stop() {
 	if err := c.Close(); err != nil {

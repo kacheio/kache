@@ -65,6 +65,12 @@ func TestRedisClientCache(t *testing.T) {
 
 	_ = cache.Delete(ctx, "A")
 	assert.Nil(t, cache.Fetch(ctx, "A"))
+
+	assert.Equal(t, []string{"B", "E", "G"}, cache.Keys(ctx, ""))
+
+	_ = cache.Store("Foo:B", []byte("Foo:Bar"), ttl)
+	_ = cache.Store("Bar:F", []byte("Bar:Foo"), ttl)
+	assert.Equal(t, []string{"Foo:B"}, cache.Keys(ctx, "Foo:"))
 }
 
 func TestRedisClientConcurrentAccess(t *testing.T) {
