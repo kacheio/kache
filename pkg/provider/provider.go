@@ -121,9 +121,11 @@ var errUnsupportedCacheBackend = errors.New("unsupported cache backend")
 
 // ProviderBackendConfig holds the configuration for the caching provider backend.
 type ProviderBackendConfig struct {
-	Backend  string              `yaml:"backend"`
-	InMemory InMemoryCacheConfig `yaml:"inmemory"`
-	Redis    RedisClientConfig   `yaml:"redis"`
+	Backend    string              `yaml:"backend"`
+	Layered    bool                `yaml:"layered"`
+	LayeredTTL string              `yaml:"layered_ttl"`
+	InMemory   InMemoryCacheConfig `yaml:"inmemory"`
+	Redis      RedisClientConfig   `yaml:"redis"`
 }
 
 // CreateCacheProvider creates a cache backend based on the provided configuration.
@@ -136,7 +138,15 @@ func CreateCacheProvider(name string, config ProviderBackendConfig) (Provider, e
 		if err != nil {
 			return nil, errors.Join(err, errors.New("failed to create redis client"))
 		}
-		return NewRedisCache(name, client), nil
+		cache := NewRedisCache(name, client)
+		if config.Layered {
+			ttl, err := time.ParseDuration(config.LayeredTTL)
+			if err != nil {
+				ttl = 120 * time.Second
+			}
+			return NewCached(cache, name, ttl, config.InMemory)
+		}
+		return cache, nil
 	default:
 		return nil, errUnsupportedCacheBackend
 	}

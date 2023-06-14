@@ -41,6 +41,7 @@ cache:
 provider:
   # activate specified provider backend
   backend: redis
+  layered: false # experimental
 
   # redis client configuration
   redis:
