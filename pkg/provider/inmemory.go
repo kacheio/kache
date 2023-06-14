@@ -54,8 +54,8 @@ type inMemoryCache struct {
 
 // DefaultInMemoryCacheConfig provides default config values for the cache.
 var DefaultInMemoryCacheConfig = InMemoryCacheConfig{
-	MaxSize:     250 * 1024 * 1024,
-	MaxItemSize: 125 * 1024 * 1024,
+	MaxSize:     1 << 28, // 256 MiB
+	MaxItemSize: 1 << 27, // 128 Mib
 }
 
 // InMemoryCacheConfig holds the in-memory cache config.
