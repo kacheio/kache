@@ -5,14 +5,18 @@
 replicaCount: 1
 
 image:
-  repository: nginx
+  repository: kacheio
   pullPolicy: IfNotPresent
-  # Overrides the image tag whose default is the chart appVersion.
-  tag: ""
+  tag: "main"
 
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
+
+# Enable configMap for Varnish Template File (see below vclTemplate)
+# OR use extravolume with name "template" if the file is too big
+configmap:
+  enabled: true
 
 serviceAccount:
   # Specifies whether a service account should be created
