@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kache-config
+data:
+  config.yml: |-
+    listeners:
+      web1:
+        addr: :80
+      web2:
+        addr: :1337
+    upstreams:
+      - name: service1
+        addr: "http://localhost:8000"
+        path: "/fsvc"
+      - name: service2
+        addr: "http://example.com"
+        path: "/"
+    api:
+      port: 1338
+      debug: true
+    logging:
+      level: debug
+    provider:
+      backend: redis
+      redis:
+        endpoint: "redis-master:6379"
+        username:
+        password:
+        db:
