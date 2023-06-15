@@ -29,6 +29,7 @@ api: # admin api
 ## Loggging configuration
 logging:
   level: debug
+  # color: true
   # filePath: logs/log
 
 ## Cache configuration
@@ -54,6 +55,5 @@ provider:
   inmemory:
     max_size:
     max_item_size:
-    
 ## Cluster configuration
 ## TODO
