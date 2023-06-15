@@ -24,6 +24,8 @@ package middleware
 
 import (
 	"context"
+	"crypto/tls"
+	"net"
 	"net/http"
 	"time"
 
@@ -46,7 +48,25 @@ type Transport struct {
 
 // NewTransport returns a new Transport with the provided Cache implementation.
 func NewCachedTransport(c *cache.HttpCache) *Transport {
-	return &Transport{Cache: c, currentTime: time.Now}
+	// Configure custom transport.
+	// TODO: make some fields configurable via config.
+	dialer := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+
+	transport := &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
+		DialContext:           dialer.DialContext,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
+
+	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+
+	return &Transport{Transport: transport, Cache: c, currentTime: time.Now}
 }
 
 // RoundTrip issues a http roundtrip and applies the http caching logic.
@@ -62,6 +82,7 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	}
 
 	lookup := cache.NewLookupRequest(req, t.currentTime())
+	log.Debug().Msgf("Looking up resonse for key: %v", lookup.Key.String())
 	cached := t.Cache.FetchResponse(ctx, *lookup)
 
 	switch cached.Status {
@@ -102,9 +123,12 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 		resp = cached.Response()
 	}
 
+	log.Debug().Msgf("Response cacheable? : %v \n %v", cache.IsCacheableResponse(resp), resp)
+
 	// Store new or update validated response.
 	if cache.IsCacheableResponse(resp) && shouldUpdateCachedEntry &&
 		!lookup.ReqCacheControl.NoStore && lookup.Request.Method != "HEAD" {
+		log.Debug().Msg("Store response")
 		t.Cache.StoreResponse(context.Background(), lookup, resp, t.currentTime())
 	} else {
 		t.Cache.Delete(ctx, lookup)
