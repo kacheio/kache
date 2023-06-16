@@ -69,11 +69,11 @@ func InitLogger(cfg *config.Log) {
 func initFormat(cfg *config.Log) io.Writer {
 	var w io.Writer = os.Stderr
 
-	if cfg != nil && cfg.FilePath != "" {
+	if cfg != nil && cfg.File != "" {
 		// write logs to rolling files
-		_, _ = os.Create(cfg.FilePath)
+		_, _ = os.Create(cfg.File)
 		w = &lumberjack.Logger{
-			Filename:   cfg.FilePath,
+			Filename:   cfg.File,
 			MaxSize:    cfg.MaxSize,
 			MaxBackups: cfg.MaxBackups,
 			MaxAge:     cfg.MaxAge,
@@ -86,7 +86,7 @@ func initFormat(cfg *config.Log) io.Writer {
 		w = zerolog.ConsoleWriter{
 			Out:        w,
 			TimeFormat: time.RFC3339,
-			NoColor:    true,
+			NoColor:    (cfg != nil && (!cfg.Color || len(cfg.File) > 0)),
 		}
 	}
 

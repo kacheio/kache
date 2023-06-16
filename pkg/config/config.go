@@ -107,8 +107,9 @@ type API struct {
 type Log struct {
 	Level  string `yaml:"level,omitempty"`
 	Format string `yaml:"format,omitempty"`
+	Color  bool   `yaml:"color,omitempty"`
 
-	FilePath   string `yaml:"filePath,omitempty"`
+	File       string `yaml:"file,omitempty"`
 	MaxSize    int    `yaml:"maxSize,omitempty"`
 	MaxAge     int    `yaml:"maxAge,omitempty"`
 	MaxBackups int    `yaml:"maxBackups,omitempty"`
