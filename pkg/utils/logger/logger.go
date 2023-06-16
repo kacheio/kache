@@ -86,7 +86,7 @@ func initFormat(cfg *config.Log) io.Writer {
 		w = zerolog.ConsoleWriter{
 			Out:        w,
 			TimeFormat: time.RFC3339,
-			NoColor:    !(cfg != nil && cfg.Color),
+			NoColor:    (cfg != nil && (!cfg.Color || len(cfg.FilePath) > 0)),
 		}
 	}
 

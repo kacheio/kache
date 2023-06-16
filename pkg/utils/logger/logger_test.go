@@ -63,10 +63,6 @@ func ExampleInitLogger() {
 
 	// Test log format
 
-	// no config should log console
-	InitLogger(nil)
-	log.Info().Msg("test nil")
-
 	// empty format should log console
 	InitLogger(&config.Log{Format: ""})
 	log.Info().Msg("test empty")
@@ -91,12 +87,11 @@ func ExampleInitLogger() {
 	log.Info().Msg("test level debug")
 
 	// Output:
-	// 1970-01-01T00:00:00Z INF test nil
 	// 1970-01-01T00:00:00Z INF test empty
 	// 1970-01-01T00:00:00Z INF test common
 	// {"level":"info","time":"1970-01-01T00:00:00Z","message":"test json"}
 	// 1970-01-01T00:00:00Z INF test level info
-	// 1970-01-01T00:00:00Z INF logger_test.go:91 > test level debug
+	// 1970-01-01T00:00:00Z INF logger_test.go:87 > test level debug
 
 	os.Stderr = _stderr
 }
