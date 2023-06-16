@@ -94,15 +94,18 @@ func (t *Kache) initProvider() error {
 func (t *Kache) setupModules() error {
 	// Register module init functions
 	type initFn func() error
-	modules := map[string]initFn{
-		"API":      t.initAPI,
-		"Provider": t.initProvider,
-		"Proxy":    t.initServer,
+	modules := [...]struct {
+		Name string
+		Init initFn
+	}{
+		{"API", t.initAPI},
+		{"Provider", t.initProvider},
+		{"Proxy", t.initServer},
 	}
 
-	for m, initFn := range modules {
-		log.Info().Msgf("Initializing %s", m)
-		if err := initFn(); err != nil {
+	for _, m := range modules {
+		log.Info().Msgf("Initializing %s", m.Name)
+		if err := m.Init(); err != nil {
 			return err
 		}
 	}
