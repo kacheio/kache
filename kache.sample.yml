@@ -30,7 +30,7 @@ api: # admin api
 logging:
   level: debug
   # color: true
-  # filePath: logs/log
+  # file: logs/log
 
 ## Cache configuration
 cache:
