@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"path"
 
 	xxhash "github.com/cespare/xxhash/v2"
 )
@@ -41,10 +42,11 @@ type Key struct {
 
 // NewFromRequest creates a cache key from the given request.
 func NewKeyFromRequst(req *http.Request) *Key {
+
 	key := &Key{
 		ClusterName: "kache-",
 		Host:        req.Host,
-		Path:        req.URL.Path,
+		Path:        cleanPath(req.URL.Path),
 		Query:       req.URL.Query().Encode(),
 		Scheme:      req.URL.Scheme,
 	}
@@ -80,4 +82,15 @@ func (k Key) Hash() uint64 {
 func StableHashKey(k Key) uint64 {
 	// TODO(toashd): performance; use proto marshal instead?
 	return xxhash.Sum64([]byte(k.String()))
+}
+
+// cleanPath returns the canonical path for p.
+func cleanPath(p string) string {
+	if p == "" {
+		return "/"
+	}
+	if p[0] != '/' {
+		p = "/" + p
+	}
+	return path.Clean(p)
 }

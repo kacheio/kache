@@ -22,10 +22,27 @@
 
 package cache
 
-import "testing"
+import (
+	"net/http"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func TestNewKey(t *testing.T) {
-	// t.Errorf("not implemented")
+	url := "https://example.com/with/path"
+
+	req, _ := http.NewRequest("GET", url, nil)
+	key := NewKeyFromRequst(req)
+
+	assert.Equal(t, "kache-"+url, key.String())
+	assert.Equal(t, "https", key.Scheme)
+
+	// Add trailing slash, expected be cleaned up.
+	req, _ = http.NewRequest("GET", url+"/", nil)
+	key = NewKeyFromRequst(req)
+
+	assert.Equal(t, "kache-"+url, key.String())
 }
 
 func TestHashKey(t *testing.T) {
