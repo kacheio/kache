@@ -84,7 +84,6 @@ func (c *Cached) Get(ctx context.Context, key string) []byte {
 
 	val := c.outer.Get(ctx, key)
 	if val != nil {
-		// TODO: handle expiration.
 		return val
 	}
 

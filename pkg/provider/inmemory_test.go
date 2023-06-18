@@ -29,7 +29,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kacheio/kache/pkg/utils/clock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestInMeoryCache(t *testing.T) {
@@ -183,4 +185,28 @@ func TestKeys(t *testing.T) {
 	cache.Set("Foo:B", []byte("Foo:Bar"), ttl)
 	cache.Set("Bar:F", []byte("Bar:Foo"), ttl)
 	assert.Equal(t, []string{"Foo:B"}, cache.Keys(ctx, "Foo:"))
+}
+
+func TestTTL(t *testing.T) {
+	ts := clock.NewEventTimeSource()
+	ts.Update(time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC))
+
+	cache, err := NewInMemoryCache(DefaultInMemoryCacheConfig)
+	require.NoError(t, err)
+	cache.(*inMemoryCache).currentTime = ts.Now
+
+	cache.Set("A", []byte("Alice"), 120*time.Second)
+	assert.Equal(t, 1, int(cache.Size()))
+
+	// Advance time.
+	ts.Update(ts.Now().Add(90 * time.Second))
+
+	assert.Equal(t, "Alice", string(cache.Get(context.Background(), "A")))
+	assert.Equal(t, 1, int(cache.Size()))
+
+	// Advance time.
+	ts.Update(ts.Now().Add(31 * time.Second)) // 121s
+
+	assert.Equal(t, "", string(cache.Get(context.Background(), "A")))
+	assert.Equal(t, 0, int(cache.Size()))
 }

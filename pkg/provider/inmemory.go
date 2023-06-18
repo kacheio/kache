@@ -44,18 +44,33 @@ const (
 type inMemoryCache struct {
 	mu sync.RWMutex
 
+	// inner is the actual LRU cache.
 	inner *lru.Cache[string, []byte]
 
-	maxSizeBytes     uint64
+	// maxSizeBytes is the max bytes the cache can hold.
+	maxSizeBytes uint64
+
+	// maxItemSizeBytes is the max size of a single item.
 	maxItemSizeBytes uint64
 
+	// curSize is the current cache size in bytes.
 	curSize uint64
+
+	// defaultTTL is the item default ttl.
+	defaultTTL time.Duration
+
+	// ttl holds the ttl to an item.
+	ttl map[string]time.Time
+
+	// currentTime is the time source.
+	currentTime func() time.Time
 }
 
 // DefaultInMemoryCacheConfig provides default config values for the cache.
 var DefaultInMemoryCacheConfig = InMemoryCacheConfig{
 	MaxSize:     1 << 28, // 256 MiB
 	MaxItemSize: 1 << 27, // 128 Mib
+	DefaultTTL:  "120s",
 }
 
 // InMemoryCacheConfig holds the in-memory cache config.
@@ -64,6 +79,8 @@ type InMemoryCacheConfig struct {
 	MaxSize uint64 `yaml:"max_size"`
 	// MaxItemSize is the maximum size of a single item.
 	MaxItemSize uint64 `yaml:"max_item_size"`
+	// DefaultTTL is the defautl ttl of a single item.
+	DefaultTTL string `yaml:"default_ttl"`
 }
 
 // Sanitize checks the config and adds defaults to missing values.
@@ -73,6 +90,9 @@ func (c *InMemoryCacheConfig) Sanitize() {
 	}
 	if c.MaxItemSize == 0 {
 		c.MaxItemSize = DefaultInMemoryCacheConfig.MaxItemSize
+	}
+	if len(c.DefaultTTL) == 0 {
+		c.DefaultTTL = DefaultInMemoryCacheConfig.DefaultTTL
 	}
 }
 
@@ -85,9 +105,17 @@ func NewInMemoryCache(config InMemoryCacheConfig) (Provider, error) {
 			config.MaxItemSize, config.MaxSize)
 	}
 
+	ttl, err := time.ParseDuration(config.DefaultTTL)
+	if err != nil {
+		ttl = time.Duration(120 * time.Second)
+	}
+
 	c := &inMemoryCache{
 		maxSizeBytes:     config.MaxSize,
 		maxItemSizeBytes: config.MaxItemSize,
+		defaultTTL:       ttl,
+		ttl:              make(map[string]time.Time),
+		currentTime:      time.Now,
 	}
 
 	// Initialize LRU cache with a high size limit, since
@@ -98,6 +126,8 @@ func NewInMemoryCache(config InMemoryCacheConfig) (Provider, error) {
 	}
 	c.inner = l
 
+	// TODO: create and start backgound job to evict expired items.
+
 	return c, nil
 }
 
@@ -107,9 +137,15 @@ func (c *inMemoryCache) onEvict(key string, val []byte) {
 }
 
 // Get retrieves an element based on the provided key.
-func (c *inMemoryCache) Get(_ context.Context, key string) []byte {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+func (c *inMemoryCache) Get(ctx context.Context, key string) []byte {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if expires, ok := c.ttl[key]; ok && expires.Before(c.currentTime()) {
+		c._delete(ctx, key)
+		return nil
+	}
+
 	v, ok := c.inner.Get(key)
 	if !ok {
 		return nil
@@ -119,7 +155,7 @@ func (c *inMemoryCache) Get(_ context.Context, key string) []byte {
 
 // Set adds an item to the cache. If the item is too large,
 // the cache evicts older items unitl it fits.
-func (c *inMemoryCache) Set(key string, value []byte, _ time.Duration) {
+func (c *inMemoryCache) Set(key string, value []byte, ttl time.Duration) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -141,6 +177,7 @@ func (c *inMemoryCache) Set(key string, value []byte, _ time.Duration) {
 
 	c.inner.Add(key, value)
 	c.curSize += size
+	c.ttl[key] = c.currentTime().Add(ttl)
 }
 
 // ensureCapacity ensures there is enough capacity for the new item.
@@ -169,10 +206,19 @@ func itemSize(b []byte) uint64 {
 func (c *inMemoryCache) reset() {
 	c.inner.Purge()
 	c.curSize = 0
+	c.ttl = make(map[string]time.Time)
 }
 
 // Delete deletes an element in the cache.
-func (c *inMemoryCache) Delete(_ context.Context, key string) bool {
+func (c *inMemoryCache) Delete(ctx context.Context, key string) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c._delete(ctx, key)
+}
+
+// _delete deletes and item in the cache. Guarded by caller.
+func (c *inMemoryCache) _delete(_ context.Context, key string) bool {
+	delete(c.ttl, key)
 	return c.inner.Remove(key)
 }
 
@@ -181,7 +227,8 @@ func (c *inMemoryCache) Size() int {
 	return c.inner.Len()
 }
 
-// Keys returns a slice of the keys in the cache, from oldest to newest.
+// Keys returns a slice of the keys in the cache, from oldest to newest. It doesn't check TTL
+// of the returned keys (TODO).
 func (c *inMemoryCache) Keys(_ context.Context, prefix string) []string {
 	if prefix == "" {
 		return c.inner.Keys()
