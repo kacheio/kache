@@ -160,20 +160,25 @@ func (c *inMemoryCache) Set(key string, value []byte, ttl time.Duration) {
 	defer c.mu.Unlock()
 
 	size := itemSize(value)
+	if size > c.maxItemSizeBytes {
+		log.Debug().Msg("Item is bigger than maxItemSize")
+		return
+	}
 
+	// If an item is to be updated by a smaller one, we just set
+	// the new value without checking the capacity.
 	if ent, ok := c.inner.Get(key); ok {
 		entSize := itemSize(ent)
 		if size <= entSize {
 			c.inner.Add(key, value)
 			c.curSize -= (entSize - size)
+			c.ttl[key] = c.currentTime().Add(ttl)
 			return
 		}
 		c.inner.Remove(key)
 	}
 
-	if !c.ensureCapacity(size) {
-		return
-	}
+	c.ensureCapacity(size)
 
 	c.inner.Add(key, value)
 	c.curSize += size
@@ -181,20 +186,13 @@ func (c *inMemoryCache) Set(key string, value []byte, ttl time.Duration) {
 }
 
 // ensureCapacity ensures there is enough capacity for the new item.
-func (c *inMemoryCache) ensureCapacity(size uint64) bool {
-	if size > c.maxSizeBytes {
-		log.Debug().Msg("Item is bigger than maxItemSize")
-		return false
-	}
-
+func (c *inMemoryCache) ensureCapacity(size uint64) {
 	for c.curSize+size > c.maxSizeBytes {
 		if _, _, ok := c.inner.RemoveOldest(); !ok {
-			log.Debug().Msg("Failed to allocate space for new item.")
+			log.Debug().Msg("Failed to allocate space for new item, reset cache.")
 			c.reset()
 		}
 	}
-
-	return true
 }
 
 // itemSize calculates the actual size of the provided slice.

@@ -148,11 +148,12 @@ func TestInMemoryCacheMaxSize(t *testing.T) {
 	assert.Equal(t, itemCm, string(cache.Get(ctx, "ItemC")))
 
 	// C updated with larger item, evction until fit.
-	itemCM := strings.Repeat("C", 64)
+	itemCM := strings.Repeat("C", 39)
 	cache.Set("ItemC", []byte(itemCM), ttl)
-	assert.Equal(t, 1, cache.Size())
-	assert.Equal(t, 88, int(cache.(*inMemoryCache).curSize))
+	assert.Equal(t, 2, cache.Size())
+	assert.Equal(t, 127, int(cache.(*inMemoryCache).curSize))
 	assert.Equal(t, itemCM, string(cache.Get(ctx, "ItemC")))
+	assert.Equal(t, itemB, string(cache.Get(ctx, "ItemB")))
 
 	// Reset
 	cache.(*inMemoryCache).reset()
