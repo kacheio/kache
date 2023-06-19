@@ -211,3 +211,32 @@ func TestTTL(t *testing.T) {
 	assert.Equal(t, "", string(cache.Get(context.Background(), "A")))
 	assert.Equal(t, 0, int(cache.Size()))
 }
+
+func TestTTLEvictionDisabled(t *testing.T) {
+	ts := clock.NewEventTimeSource()
+	ts.Update(time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC))
+
+	config := DefaultInMemoryCacheConfig
+	config.DefaultTTL = "-1" // disable TTL eviction
+
+	cache, err := NewInMemoryCache(config)
+	require.NoError(t, err)
+	cache.(*inMemoryCache).currentTime = ts.Now
+
+	assert.False(t, cache.(*inMemoryCache).ttlEviction)
+
+	cache.Set("A", []byte("Alice"), 120*time.Second)
+	assert.Equal(t, 1, int(cache.Size()))
+
+	// Advance time.
+	ts.Update(ts.Now().Add(90 * time.Second))
+
+	assert.Equal(t, "Alice", string(cache.Get(context.Background(), "A")))
+	assert.Equal(t, 1, int(cache.Size()))
+
+	// Advance time.
+	ts.Update(ts.Now().Add(31 * time.Second)) // 121s
+
+	assert.Equal(t, "Alice", string(cache.Get(context.Background(), "A")))
+	assert.Equal(t, 1, int(cache.Size()))
+}
