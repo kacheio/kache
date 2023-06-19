@@ -67,15 +67,16 @@ func main() {
 
 	logger.InitLogger(cfg.Log)
 
+	log.Info().Msg("Kache is starting")
+	log.Info().Str("config", configFile).Msg("Kache initializing application")
+
 	t, err := kache.New(cfg)
 	if err != nil {
-		log.Fatal().Err(err).Msg("initializing application")
+		log.Fatal().Err(err).Msg("Initializing application")
 	}
-
-	log.Info().Msgf("Starting application version 0.0.1")
 
 	err = t.Run()
 	if err != nil {
-		log.Fatal().Err(err).Msg("running application")
+		log.Fatal().Err(err).Msg("Running application")
 	}
 }

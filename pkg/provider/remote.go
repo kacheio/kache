@@ -25,8 +25,6 @@ package provider
 import (
 	"context"
 	"time"
-
-	"github.com/rs/zerolog/log"
 )
 
 // RedisCache is a Redis-based cache.
@@ -51,12 +49,10 @@ type remoteCache struct {
 
 // newRemoteCache creates a new remote cache for the provided client.
 func newRemoteCache(name string, client RemoteCacheClient) *remoteCache {
-	c := &remoteCache{
+	return &remoteCache{
 		client: client,
 		name:   name,
 	}
-	log.Info().Msg("New remote cache created.")
-	return c
 }
 
 // Get retrieves an element based on a key, returning nil if the element

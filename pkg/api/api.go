@@ -56,9 +56,9 @@ func (a *API) Run() {
 
 	path := a.config.Path
 
-	log.Info().Msgf("Starting API server on %s at /%s", port, path)
+	log.Debug().Str("port", port).Str("prefix", path).Msg("Starting API server")
 	if err := http.ListenAndServe(port, a.server); err != nil {
-		log.Fatal().Err(err).Msg("starting API server")
+		log.Fatal().Err(err).Msg("Starting API server")
 	}
 }
 

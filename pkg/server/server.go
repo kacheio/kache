@@ -44,8 +44,6 @@ const (
 	ServerGracefulShutdownTimeout = 5 * time.Second
 )
 
-type ctxCacheKey struct{}
-
 var ErrMatchingTarget = fmt.Errorf("no matching target found")
 
 // Server is the reverse proxy cache.
@@ -169,6 +167,7 @@ func (s *Server) Director() func(req *http.Request) {
 		req.URL.Scheme = upstream.Scheme
 		req.URL.Host = upstream.Host
 
+		// Path is forwarded as-is.
 		req.URL.Path = singleJoiningSlash(upstream.Path, req.URL.Path)
 
 		// Pass host header
@@ -193,7 +192,7 @@ func (s *Server) Start(ctx context.Context) {
 		s.Stop()
 	}()
 
-	log.Info().Msg("Starting server ...")
+	log.Debug().Msg("Starting server ...")
 
 	s.listeners.Start()
 }
