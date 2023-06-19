@@ -62,6 +62,9 @@ type inMemoryCache struct {
 	// ttl holds the ttl to an item.
 	ttl map[string]time.Time
 
+	// ttlEviction specifices if TTL eviction is enabled.
+	ttlEviction bool
+
 	// currentTime is the time source.
 	currentTime func() time.Time
 }
@@ -81,6 +84,9 @@ type InMemoryCacheConfig struct {
 	MaxItemSize uint64 `yaml:"max_item_size"`
 	// DefaultTTL is the defautl ttl of a single item.
 	DefaultTTL string `yaml:"default_ttl"`
+	// TTLEviction specifies if evction of items by TTL is enabled.
+	// Set to true if`DefaultTTL` is -1.
+	TTLEviction bool
 }
 
 // Sanitize checks the config and adds defaults to missing values.
@@ -93,6 +99,8 @@ func (c *InMemoryCacheConfig) Sanitize() {
 	}
 	if len(c.DefaultTTL) == 0 {
 		c.DefaultTTL = DefaultInMemoryCacheConfig.DefaultTTL
+	} else {
+		c.TTLEviction = c.DefaultTTL != "-1"
 	}
 }
 
@@ -114,6 +122,7 @@ func NewInMemoryCache(config InMemoryCacheConfig) (Provider, error) {
 		maxSizeBytes:     config.MaxSize,
 		maxItemSizeBytes: config.MaxItemSize,
 		defaultTTL:       ttl,
+		ttlEviction:      config.TTLEviction,
 		ttl:              make(map[string]time.Time),
 		currentTime:      time.Now,
 	}
@@ -141,9 +150,11 @@ func (c *inMemoryCache) Get(ctx context.Context, key string) []byte {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if expires, ok := c.ttl[key]; ok && expires.Before(c.currentTime()) {
-		c._delete(ctx, key)
-		return nil
+	if c.ttlEviction {
+		if expires, ok := c.ttl[key]; ok && expires.Before(c.currentTime()) {
+			c._delete(ctx, key)
+			return nil
+		}
 	}
 
 	v, ok := c.inner.Get(key)
