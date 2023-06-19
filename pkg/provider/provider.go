@@ -26,6 +26,8 @@ import (
 	"context"
 	"errors"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 // Provider is a generalized interface to a cache.
@@ -130,6 +132,22 @@ type ProviderBackendConfig struct {
 
 // CreateCacheProvider creates a cache backend based on the provided configuration.
 func CreateCacheProvider(name string, config ProviderBackendConfig) (Provider, error) {
+	p, err := _createCacheProvider(name, config)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to create provider")
+		return nil, err
+	}
+
+	log.Debug().
+		Str("name", name).
+		Str("backend", config.Backend).
+		Bool("layered", config.Layered).
+		Msg("Provider created")
+
+	return p, nil
+}
+
+func _createCacheProvider(name string, config ProviderBackendConfig) (Provider, error) {
 	switch config.Backend {
 	case BackendInMemory:
 		return NewInMemoryCache(config.InMemory)

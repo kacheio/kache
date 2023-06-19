@@ -26,6 +26,7 @@ import (
 	"context"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/kacheio/kache/pkg/api"
 	"github.com/kacheio/kache/pkg/config"
@@ -100,11 +101,11 @@ func (t *Kache) setupModules() error {
 	}{
 		{"API", t.initAPI},
 		{"Provider", t.initProvider},
-		{"Proxy", t.initServer},
+		{"Server", t.initServer},
 	}
 
 	for _, m := range modules {
-		log.Info().Msgf("Initializing %s", m.Name)
+		log.Debug().Msgf("Initializing %s", m.Name)
 		if err := m.Init(); err != nil {
 			return err
 		}
@@ -128,6 +129,9 @@ func (t *Kache) Run() error {
 	// Start core server
 	t.Server.Start(ctx)
 	defer t.Server.Shutdown()
+
+	time.Sleep(120 * time.Millisecond)
+	log.Info().Str("version", "0.0.1").Msg("Kache just started")
 
 	// Wait until shutdown signal received
 	t.Server.Await()

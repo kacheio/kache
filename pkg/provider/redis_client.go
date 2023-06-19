@@ -24,6 +24,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -83,8 +84,9 @@ func NewRedisClient(name string, config RedisClientConfig) (RemoteCacheClient, e
 func (c *redisClient) Fetch(ctx context.Context, key string) []byte {
 	res, err := c.Get(ctx, key).Result()
 	if err != nil {
-		// todo: logger, add key
-		log.Error().Err(err).Msg("failed to get item from redis")
+		if !errors.Is(err, redis.Nil) {
+			log.Error().Err(err).Str("cache-key", key).Msg("Error getting item from redis")
+		}
 		return nil
 	}
 	return []byte(res)

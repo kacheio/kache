@@ -74,7 +74,7 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	ctx := req.Context()
 
 	if !cache.IsCacheableRequest(req) {
-		log.Debug().Msgf("Ignoring uncachable request: %v", req)
+		log.Debug().Interface("header", req.Header).Msg("Ignoring uncachable request")
 		if t.Cache.MarkCachedResponses() {
 			req.Header.Set(t.Cache.XCacheHeader(), cache.MISS)
 		}
@@ -82,19 +82,28 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	}
 
 	lookup := cache.NewLookupRequest(req, t.currentTime())
-	log.Debug().Msgf("Looking up resonse for key: %v", lookup.Key.String())
+	cacheKey := lookup.Key.String()
+
+	log.Debug().Str("cache-key", cacheKey).Msg("Lookup response")
 	cached := t.Cache.FetchResponse(ctx, *lookup)
 
 	switch cached.Status {
 	case cache.EntryOk:
-		return t.handleCacheHit(cached)
+		return t.handleCacheHit(cacheKey, cached)
 
 	case cache.EntryRequiresValidation:
 		if t.Cache.MarkCachedResponses() {
 			cached.Header().Set(t.Cache.XCacheHeader(), cache.HIT)
 		}
-		log.Debug().Msgf("Cache HIT with validation: %v", cached.Response())
+		log.Debug().Str("cache-key", cacheKey).Interface("header", cached.Header()).
+			Msg("Cache HIT with validation")
 		req = t.injectValidationHeaders(lookup.Request, cached.Header())
+
+	case cache.EntryInvalid:
+		log.Debug().Str("cache-key", cacheKey).Msg("Cache MISS, calling upstream")
+
+	case cache.EntryLookupError:
+		log.Error().Str("cache-key", cacheKey).Msg("Cache ERROR while retrieving the response")
 	}
 
 	// Send request to upstream.
@@ -123,12 +132,9 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 		resp = cached.Response()
 	}
 
-	log.Debug().Msgf("Response cacheable? : %v \n %v", cache.IsCacheableResponse(resp), resp)
-
 	// Store new or update validated response.
 	if cache.IsCacheableResponse(resp) && shouldUpdateCachedEntry &&
 		!lookup.ReqCacheControl.NoStore && lookup.Request.Method != "HEAD" {
-		log.Debug().Msg("Store response")
 		t.Cache.StoreResponse(context.Background(), lookup, resp, t.currentTime())
 	} else {
 		t.Cache.Delete(ctx, lookup)
@@ -138,8 +144,8 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 }
 
 // handleCacheHit handles a cache hit and sends the cached response downstream.
-func (t *Transport) handleCacheHit(cached *cache.LookupResult) (*http.Response, error) {
-	log.Debug().Msgf("Cache HIT: %v", cached.Response())
+func (t *Transport) handleCacheHit(key string, cached *cache.LookupResult) (*http.Response, error) {
+	log.Debug().Str("cache-key", key).Interface("header", cached.Header()).Msgf("Cache HIT")
 	cached.Header().Set(t.Cache.XCacheHeader(), cache.HIT)
 	return cached.Response(), nil
 }
