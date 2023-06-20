@@ -1,17 +1,25 @@
 SHELL = /usr/bin/env bash
+COLOR := "\e[1;36m%s\e[0m\n"
 
 SRCS = $(shell git ls-files '*.go' | grep -v '^vendor/')
+VERSION=$(shell cat "./VERSION" 2> /dev/null)
 
 TAG := $(shell git tag -l --contains HEAD)
 SHA := $(shell git rev-parse --short HEAD)
 GIT := $(if $(TAG),$(TAG),$(SHA))
 VERSION := $(if $(VERSION),$(VERSION),$(GIT))
 
+BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
+KACHE_VERSION := github.com/kacheio/kache/pkg/utils/version
+
+GO_FLAGS := -ldflags "\
+		-X $(KACHE_VERSION).Version=$(VERSION) \
+		-X $(KACHE_VERSION).Branch=$(BRANCH) \
+		-X $(KACHE_VERSION).Build=$(SHA)"
+
 TEST_TIMEOUT := 20m 
 
-COLOR := "\e[1;36m%s\e[0m\n"
-
-.PHONY: all lint format test test-with-race mod mod-check mod-vendor clean license release snap-release run
+.PHONY: all lint format test test-with-race mod mod-check mod-vendor clean license release snap-release run build build-run
 
 lint: ## Run linters.
 	@printf $(COLOR) "Run linters..."
@@ -54,4 +62,10 @@ snap-release: ## Make snapshot release.
 	goreleaser release --snapshot --clean --skip-publish
 
 run: ## Run dev.
-	go run cmd/kache/main.go -config.file kache.yml
+	@go run $(GO_FLAGS) cmd/kache/main.go -config.file kache.yml
+
+build: ## Build.
+	@go build -o kache $(GO_FLAGS) cmd/kache/main.go
+
+build-run: build ## Build and run.
+	@./kache
