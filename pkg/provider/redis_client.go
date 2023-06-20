@@ -35,6 +35,7 @@ import (
 var (
 	ErrRedisConfigNoEndpoint    = errors.New("no redis endpoint configured")
 	ErrRedisMaxQueueConcurrency = errors.New("max job queue concurrency must be positive")
+	ErrRedisMaxItemSize         = errors.New("max item size exceeded")
 	ErrRedisJobQueueFull        = errors.New("job queue is full")
 )
 
@@ -58,6 +59,10 @@ type RedisClientConfig struct {
 
 	// DB Database to be selected after connecting to the server.
 	DB int `yaml:"db"`
+
+	// MaxItemSize specifies the maximum size of an item stored in Redis.
+	// Items bigger than MaxItemSize are skipped. If set to 0, no maximum size is enforced.
+	MaxItemSize int `yaml:"max_item_size"`
 
 	// MaxQueueBufferSize is the maximum number of enqueued job operations allowed.
 	MaxQueueBufferSize int `yaml:"max_queue_buffer_size"`
@@ -121,7 +126,9 @@ func (c *redisClient) Fetch(ctx context.Context, key string) []byte {
 
 // Store stores a key and value into Redis.
 func (c *redisClient) Store(key string, value []byte, ttl time.Duration) error {
-	// TODO: Store async
+	if c.config.MaxItemSize > 0 && len(value) > c.config.MaxItemSize {
+		return ErrRedisMaxItemSize
+	}
 	_, err := c.Set(context.Background(), key, value, ttl).Result()
 	return err
 

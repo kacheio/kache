@@ -50,6 +50,7 @@ provider:
     username:
     password:
     db:
+    max_item_size:
     max_queue_buffer_size:
     max_queue_concurrency:
 

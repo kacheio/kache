@@ -36,6 +36,7 @@ func TestCached(t *testing.T) {
 	s := miniredis.RunT(t)
 	client, err := NewRedisClient("redis", RedisClientConfig{
 		Endpoint:            s.Addr(),
+		MaxItemSize:         1 << 14,
 		MaxQueueBufferSize:  32 << 8,
 		MaxQueueConcurrency: 56,
 	})

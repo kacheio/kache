@@ -117,6 +117,22 @@ func TestRedisClientConcurrentAccess(t *testing.T) {
 	wg.Wait()
 }
 
+func TestRedisClientMaxItemSize(t *testing.T) {
+	s := miniredis.RunT(t)
+	config := RedisClientConfig{
+		Endpoint:    s.Addr(),
+		MaxItemSize: 128,
+	}
+	cache, err := NewRedisClient("test", config)
+	require.NoError(t, err)
+
+	smallItem := strings.Repeat("A", 127)
+	assert.NoError(t, cache.Store("A", []byte(smallItem), 120*time.Second))
+
+	largeItem := strings.Repeat("A", 129)
+	assert.Error(t, ErrRedisMaxItemSize, cache.Store("A", []byte(largeItem), 120*time.Second))
+}
+
 func TestRedisClientJobQueue(t *testing.T) {
 	s := miniredis.RunT(t)
 	config := RedisClientConfig{
