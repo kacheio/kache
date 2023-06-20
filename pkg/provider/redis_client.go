@@ -163,6 +163,7 @@ func (c *redisClient) Keys(ctx context.Context, prefix string) []string {
 
 // Stop client and release resources.
 func (c *redisClient) Stop() {
+	c.queue.stop()
 	if err := c.Close(); err != nil {
 		log.Error().Err(err).Msg("Failed to stop the redis client.")
 	}
