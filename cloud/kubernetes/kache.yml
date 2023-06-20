@@ -1,0 +1,66 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kache
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kache
+  template:
+    metadata:
+      labels:
+        app: kache
+    spec:
+      containers:
+        - name: kache
+          image: kacheio/kache:main
+          imagePullPolicy: Always
+          args:
+            - "-config.file=/etc/kache/config.yml"
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          volumeMounts:
+            - name: config
+              mountPath: /etc/kache
+          ports:
+            - containerPort: 8080
+              name: http
+            - containerPort: 1337
+              name: web
+            - containerPort: 1338
+              name: api
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+      volumes:
+        - name: config
+          configMap:
+            name: kache-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kache-service
+  labels:
+    app: kache
+spec:
+  type: LoadBalancer
+  ports:
+    - name: "http"
+      port: 80
+      targetPort: http
+    - name: "web"
+      port: 1337
+      targetPort: web
+    - name: "api"
+      port: 1338
+      targetPort: api
+  selector:
+    app: kache

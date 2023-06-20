@@ -1,0 +1,7 @@
+apiVersion: v2
+name: kache-httpcache
+description: Kache on Kubernetes Helm Chart
+version: 0.1.0
+appVersion: v0.1.0
+sources:
+  - https://github.com/kacheio/kache
