@@ -24,6 +24,7 @@ package provider
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -114,4 +115,16 @@ func TestRedisClientConcurrentAccess(t *testing.T) {
 
 	close(ch)
 	wg.Wait()
+}
+
+func TestRedisClientJobQueue(t *testing.T) {
+	s := miniredis.RunT(t)
+	config := RedisClientConfig{
+		Endpoint: s.Addr(),
+	}
+	cache, err := NewRedisClient("test", config)
+	require.NoError(t, err)
+
+	smallItem := strings.Repeat("A", 127)
+	assert.Error(t, ErrRedisJobQueueFull, cache.Store("A", []byte(smallItem), 120*time.Second))
 }

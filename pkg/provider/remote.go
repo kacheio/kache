@@ -63,7 +63,7 @@ func (c *remoteCache) Get(ctx context.Context, key string) []byte {
 
 // Set adds an item to the cache.
 func (c *remoteCache) Set(key string, value []byte, ttl time.Duration) {
-	_ = c.client.Store(key, value, ttl)
+	_ = c.client.StoreAsync(key, value, ttl)
 }
 
 // Delete deletes an item from the cache.
