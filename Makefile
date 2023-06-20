@@ -19,7 +19,7 @@ GO_FLAGS := -ldflags "\
 
 TEST_TIMEOUT := 20m 
 
-.PHONY: all lint format test test-with-race mod mod-check mod-vendor clean license release snap-release run build build-run
+.PHONY: all lint format test test-with-race mod mod-check mod-update mod-vendor clean license release snap-release run build build-run
 
 lint: ## Run linters.
 	@printf $(COLOR) "Run linters..."
@@ -41,6 +41,10 @@ mod: # Run go mod.
 mod-check: ## Check modules.
 	go mod tidy
 	@git diff --exit-code go.mod
+
+mod-update: ## Update modules.
+	go get -u ./...
+	go mod tidy
 
 mod-vendor: ## Vendor modules.
 	go mod vendor
