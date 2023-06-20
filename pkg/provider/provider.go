@@ -63,6 +63,9 @@ type RemoteCacheClient interface {
 	// Returns an error in case the operation fails.
 	Store(key string, value []byte, ttl time.Duration) error
 
+	// StoreAsync asynchronously stores a key and value into the the remote cache.
+	StoreAsync(key string, value []byte, ttl time.Duration) error
+
 	// Delete deletes a key from the remote cache.
 	Delete(ctx context.Context, key string) error
 

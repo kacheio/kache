@@ -32,6 +32,12 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+var (
+	ErrRedisConfigNoEndpoint    = errors.New("no redis endpoint configured")
+	ErrRedisMaxQueueConcurrency = errors.New("max job queue concurrency must be positive")
+	ErrRedisJobQueueFull        = errors.New("job queue is full")
+)
+
 // RedisClientConfig holds the configuration for the Redis client.
 type RedisClientConfig struct {
 	// Endpoint holds the endpoint addresses of the Redis server.
@@ -52,6 +58,23 @@ type RedisClientConfig struct {
 
 	// DB Database to be selected after connecting to the server.
 	DB int `yaml:"db"`
+
+	// MaxQueueBufferSize is the maximum number of enqueued job operations allowed.
+	MaxQueueBufferSize int `yaml:"max_queue_buffer_size"`
+
+	// MaxQueueConcurrency is the maximum number of concurrent async job operations.
+	MaxQueueConcurrency int `yaml:"max_queue_concurrency"`
+}
+
+// Validate validates the RedisClientConfig.
+func (c *RedisClientConfig) Validate() error {
+	if len(c.Endpoint) == 0 {
+		return ErrRedisConfigNoEndpoint
+	}
+	if c.MaxQueueConcurrency < 1 {
+		return ErrRedisMaxQueueConcurrency
+	}
+	return nil
 }
 
 // redisClient wraps a Redis Universal Client.
@@ -60,6 +83,9 @@ type redisClient struct {
 
 	// config is the configuration of the client.
 	config RedisClientConfig
+
+	// queue is the async job queue.
+	queue *jobQueue
 }
 
 // NewRedisClient creates a new Redis client with the provided configuration.
@@ -73,6 +99,7 @@ func NewRedisClient(name string, config RedisClientConfig) (RemoteCacheClient, e
 	c := &redisClient{
 		UniversalClient: redis.NewUniversalClient(opts),
 		config:          config,
+		queue:           newJobQueue(config.MaxQueueBufferSize, config.MaxQueueConcurrency),
 	}
 	if err := c.Ping(context.Background()).Err(); err != nil {
 		return nil, err
@@ -98,6 +125,22 @@ func (c *redisClient) Store(key string, value []byte, ttl time.Duration) error {
 	_, err := c.Set(context.Background(), key, value, ttl).Result()
 	return err
 
+}
+
+// StoreAsync store a key and value into Redis asynchronously.
+func (c *redisClient) StoreAsync(key string, value []byte, ttl time.Duration) error {
+	err := c.queue.dispatch(func() {
+		err := c.Store(key, value, ttl)
+		if err != nil {
+			log.Error().Err(err).Str("cache-key", key).Msg("Error storing item in cache")
+		}
+	})
+	if errors.Is(err, errJobQueueFull) {
+		log.Error().Int("buffer-size", c.config.MaxQueueBufferSize).
+			Msg("Failed to store item in cache: job queue full")
+		return ErrRedisJobQueueFull
+	}
+	return err
 }
 
 // Delete deletes a key from Redis.

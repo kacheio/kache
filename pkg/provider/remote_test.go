@@ -35,7 +35,9 @@ import (
 func TestRedisCache(t *testing.T) {
 	s := miniredis.RunT(t)
 	config := RedisClientConfig{
-		Endpoint: s.Addr(),
+		Endpoint:            s.Addr(),
+		MaxQueueBufferSize:  32 << 8,
+		MaxQueueConcurrency: 56,
 	}
 	client, err := NewRedisClient("test", config)
 	require.NoError(t, err)
@@ -46,23 +48,32 @@ func TestRedisCache(t *testing.T) {
 	ttl := time.Duration(120 * time.Second)
 
 	cache.Set("A", []byte("Alice"), ttl)
-	assert.Equal(t, "Alice", string(cache.Get(ctx, "A")))
+	assert.EventuallyWithT(t, func(c *assert.CollectT) {
+		assert.Equal(t, "Alice", string(cache.Get(ctx, "A")))
+	}, time.Second, 10*time.Millisecond)
+
 	assert.Nil(t, cache.Get(ctx, "B"))
 
 	cache.Set("B", []byte("Bob"), ttl)
 	cache.Set("E", []byte("Eve"), ttl)
 	cache.Set("G", []byte("Gopher"), ttl)
 
-	assert.Equal(t, "Bob", string(cache.Get(ctx, "B")))
-	assert.Equal(t, "Eve", string(cache.Get(ctx, "E")))
-	assert.Equal(t, "Gopher", string(cache.Get(ctx, "G")))
+	assert.EventuallyWithT(t, func(c *assert.CollectT) {
+		assert.Equal(t, "Bob", string(cache.Get(ctx, "B")))
+		assert.Equal(t, "Eve", string(cache.Get(ctx, "E")))
+		assert.Equal(t, "Gopher", string(cache.Get(ctx, "G")))
+	}, time.Second, 10*time.Millisecond)
 
 	cache.Set("A", []byte("Foo"), ttl)
-	assert.Equal(t, "Foo", string(cache.Get(ctx, "A")))
+	assert.EventuallyWithT(t, func(c *assert.CollectT) {
+		assert.Equal(t, "Foo", string(cache.Get(ctx, "A")))
+	}, time.Second, 10*time.Millisecond)
 
 	cache.Set("B", []byte("Bar"), ttl)
-	assert.Equal(t, "Bar", string(cache.Get(ctx, "B")))
-	assert.Equal(t, "Foo", string(cache.Get(ctx, "A")))
+	assert.EventuallyWithT(t, func(c *assert.CollectT) {
+		assert.Equal(t, "Bar", string(cache.Get(ctx, "B")))
+		assert.Equal(t, "Foo", string(cache.Get(ctx, "A")))
+	}, time.Second, 10*time.Millisecond)
 
 	cache.Delete(ctx, "A")
 	assert.Nil(t, cache.Get(ctx, "A"))

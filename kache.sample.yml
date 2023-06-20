@@ -50,10 +50,13 @@ provider:
     username:
     password:
     db:
+    max_queue_buffer_size:
+    max_queue_concurrency:
 
   # in-memory cache configuration
   inmemory:
     max_size:
     max_item_size:
+
 ## Cluster configuration
 ## TODO

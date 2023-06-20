@@ -35,7 +35,9 @@ import (
 func TestCached(t *testing.T) {
 	s := miniredis.RunT(t)
 	client, err := NewRedisClient("redis", RedisClientConfig{
-		Endpoint: s.Addr(),
+		Endpoint:            s.Addr(),
+		MaxQueueBufferSize:  32 << 8,
+		MaxQueueConcurrency: 56,
 	})
 	require.NoError(t, err)
 
@@ -46,11 +48,12 @@ func TestCached(t *testing.T) {
 	require.NoError(t, err)
 
 	cache.Set("A", []byte("Alice"), ttl)
-	assert.Equal(t, "Alice", string(cache.Get(ctx, "A")))
-	assert.Nil(t, cache.Get(ctx, "B"))
-
-	assert.Equal(t, 1, len(cache.outer.Keys(ctx, "")))
-	assert.Equal(t, 1, len(cache.inner.Keys(ctx, "")))
+	assert.EventuallyWithT(t, func(c *assert.CollectT) {
+		assert.Equal(t, "Alice", string(cache.Get(ctx, "A")))
+		assert.Nil(t, cache.Get(ctx, "B"))
+		assert.Equal(t, 1, len(cache.outer.Keys(ctx, "")))
+		assert.Equal(t, 1, len(cache.inner.Keys(ctx, "")))
+	}, time.Second, 10*time.Millisecond)
 
 	s.Del("A")
 	// After removing item from layer 2, it is still in layer 1.
