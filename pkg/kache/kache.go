@@ -32,6 +32,7 @@ import (
 	"github.com/kacheio/kache/pkg/config"
 	"github.com/kacheio/kache/pkg/provider"
 	"github.com/kacheio/kache/pkg/server"
+	"github.com/kacheio/kache/pkg/utils/version"
 	"github.com/rs/zerolog/log"
 )
 
@@ -131,7 +132,7 @@ func (t *Kache) Run() error {
 	defer t.Server.Shutdown()
 
 	time.Sleep(120 * time.Millisecond)
-	log.Info().Str("version", "0.0.1").Msg("Kache just started")
+	log.Info().Str("version", version.Info()).Msg("Kache just started")
 
 	// Wait until shutdown signal received
 	t.Server.Await()

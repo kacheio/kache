@@ -30,28 +30,38 @@ import (
 	"github.com/kacheio/kache/pkg/config"
 	"github.com/kacheio/kache/pkg/kache"
 	"github.com/kacheio/kache/pkg/utils/logger"
+	"github.com/kacheio/kache/pkg/utils/version"
 	"github.com/rs/zerolog/log"
 )
 
 const (
 	configFileOption = "config.file"
 	configFileName   = "kache.yml"
+
+	versionOption = "version"
+	versionUsage  = "Print application version and exit."
 )
 
 func main() {
 	// Cleanup all flags registered via init() methods of 3rd-party libraries.
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 
-	// TODO: handle config via flags and env
+	var printVersion bool
+	flag.BoolVar(&printVersion, versionOption, false, versionUsage)
 
-	cfg := config.Configuration{}
-	ldr := config.NewFileLoader()
+	var configFile string
+	flag.StringVar(&configFile, configFileOption, configFileName, "")
+
+	flag.Parse()
+
+	if printVersion {
+		_, _ = fmt.Fprintln(os.Stdout, version.Print("Kache"))
+		return
+	}
 
 	// Load config file.
-	var configFile string
-
-	flag.StringVar(&configFile, configFileOption, configFileName, "")
-	flag.Parse()
+	cfg := config.Configuration{}
+	ldr := config.NewFileLoader()
 
 	if configFile != "" {
 		if err := ldr.Load(configFile, &cfg); err != nil {
