@@ -9,6 +9,8 @@ builds:
     binary: kache
     env:
       - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X github.com/kacheio/kache/pkg/utils/version.Version={{.Version}} -X github.com/kacheio/kache/pkg/utils/version.Build={{.ShortCommit}} -X github.com/kacheio/kache/pkg/utils/version.Branch={{.Branch}}
     goos:
       - linux
       - windows
@@ -18,6 +20,9 @@ builds:
       - "386"
       - arm
       - arm64
+    goarm:
+      - "7"
+      - "6"
     ignore:
       - goos: windows
         goarch: arm64
