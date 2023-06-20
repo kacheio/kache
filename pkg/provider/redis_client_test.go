@@ -120,7 +120,7 @@ func TestRedisClientConcurrentAccess(t *testing.T) {
 func TestRedisClientJobQueue(t *testing.T) {
 	s := miniredis.RunT(t)
 	config := RedisClientConfig{
-		Endpoint:    s.Addr(),
+		Endpoint: s.Addr(),
 	}
 	cache, err := NewRedisClient("test", config)
 	require.NoError(t, err)
