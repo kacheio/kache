@@ -24,8 +24,10 @@ package version
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"html/template"
+	"net/http"
 	"runtime"
 	"strings"
 )
@@ -67,4 +69,26 @@ func Print(name string) string {
 // Info returns version info with version, branch, and build.
 func Info() string {
 	return fmt.Sprintf("[version=%s, branch=%s, build=%s]", Version, Branch, Build)
+}
+
+// Handler is the verson http handler func.
+func Handler(w http.ResponseWriter, r *http.Request) {
+	v := struct {
+		Version  string
+		Branch   string
+		Build    string
+		Runtime  string
+		Platform string
+	}{
+		Version:  Version,
+		Branch:   Branch,
+		Build:    Build,
+		Runtime:  GoVersion,
+		Platform: runtime.GOOS + "/" + runtime.GOARCH,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
