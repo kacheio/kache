@@ -34,28 +34,28 @@ import (
 
 // Build information. Populated at build-time.
 var (
-	Version   = "unknown"
-	Build     = "unknown"
-	Branch    = "unknown"
-	GoVersion = runtime.Version()
+	Version = "unknown"
+	Build   = "unknown"
+	Branch  = "unknown"
+	Runtime = runtime.Version()
 )
 
 // versionTmpl is the version template.
 var versionTmpl = `
 {{.name}}, version {{.version}} (branch={{.branch}}, build={{.build}})
-  go version:       {{.goVersion}}
+  runtime:       	{{.runtime}}
   platform:         {{.platform}}
 `
 
 // Print returns the version print.
 func Print(name string) string {
 	m := map[string]string{
-		"name":      name,
-		"version":   Version,
-		"build":     Build,
-		"branch":    Branch,
-		"goVersion": GoVersion,
-		"platform":  runtime.GOOS + "/" + runtime.GOARCH,
+		"name":     name,
+		"version":  Version,
+		"build":    Build,
+		"branch":   Branch,
+		"runtime":  Runtime,
+		"platform": runtime.GOOS + "/" + runtime.GOARCH,
 	}
 	t := template.Must(template.New("version").Parse(versionTmpl))
 
@@ -83,7 +83,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		Version:  Version,
 		Branch:   Branch,
 		Build:    Build,
-		Runtime:  GoVersion,
+		Runtime:  Runtime,
 		Platform: runtime.GOOS + "/" + runtime.GOARCH,
 	}
 	w.Header().Set("Content-Type", "application/json")
