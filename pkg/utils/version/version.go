@@ -24,36 +24,38 @@ package version
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"html/template"
+	"net/http"
 	"runtime"
 	"strings"
 )
 
 // Build information. Populated at build-time.
 var (
-	Version   = "unknown"
-	Build     = "unknown"
-	Branch    = "unknown"
-	GoVersion = runtime.Version()
+	Version = "unknown"
+	Build   = "unknown"
+	Branch  = "unknown"
+	Runtime = runtime.Version()
 )
 
 // versionTmpl is the version template.
 var versionTmpl = `
 {{.name}}, version {{.version}} (branch={{.branch}}, build={{.build}})
-  go version:       {{.goVersion}}
+  runtime:       	{{.runtime}}
   platform:         {{.platform}}
 `
 
 // Print returns the version print.
 func Print(name string) string {
 	m := map[string]string{
-		"name":      name,
-		"version":   Version,
-		"build":     Build,
-		"branch":    Branch,
-		"goVersion": GoVersion,
-		"platform":  runtime.GOOS + "/" + runtime.GOARCH,
+		"name":     name,
+		"version":  Version,
+		"build":    Build,
+		"branch":   Branch,
+		"runtime":  Runtime,
+		"platform": runtime.GOOS + "/" + runtime.GOARCH,
 	}
 	t := template.Must(template.New("version").Parse(versionTmpl))
 
@@ -67,4 +69,26 @@ func Print(name string) string {
 // Info returns version info with version, branch, and build.
 func Info() string {
 	return fmt.Sprintf("[version=%s, branch=%s, build=%s]", Version, Branch, Build)
+}
+
+// Handler is the verson http handler func.
+func Handler(w http.ResponseWriter, r *http.Request) {
+	v := struct {
+		Version  string
+		Branch   string
+		Build    string
+		Runtime  string
+		Platform string
+	}{
+		Version:  Version,
+		Branch:   Branch,
+		Build:    Build,
+		Runtime:  Runtime,
+		Platform: runtime.GOOS + "/" + runtime.GOARCH,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
