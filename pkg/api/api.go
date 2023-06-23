@@ -29,6 +29,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/kacheio/kache/pkg/config"
 	"github.com/kacheio/kache/pkg/server"
+	"github.com/kacheio/kache/pkg/utils/version"
 	"github.com/rs/zerolog/log"
 )
 
@@ -47,13 +48,14 @@ func New(cfg config.API) (*API, error) {
 		server: srv,
 	}
 
+	api.createRoutes()
+
 	return api, nil
 }
 
 // Run starts the API server.
 func (a *API) Run() {
 	port := fmt.Sprintf(":%d", a.config.Port)
-
 	path := a.config.Path
 
 	log.Debug().Str("port", port).Str("prefix", path).Msg("Starting API server")
@@ -66,6 +68,15 @@ func (a *API) Run() {
 func (a *API) RegisterProxy(p server.Server) {
 	a.server.Get("/api/v1/cache/keys", p.CacheKeysHandler)
 	a.server.Get("/api/v1/cache/keys/purge", p.CacheKeyPurgeHandler) // /cache/keys/purge?key=....
+}
+
+// RegisterRoute registers a new handler at the given path.
+func (a *API) RegisterRoute(method string, path string, handler http.HandlerFunc) {
+	a.server.RegisterRoute(method, path, handler)
+}
+
+func (a *API) createRoutes() {
+	a.RegisterRoute("GET", "/api/version", version.Handler)
 }
 
 type Server struct {
