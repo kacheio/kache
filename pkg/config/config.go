@@ -100,6 +100,7 @@ func (u Upstreams) Validate() error {
 type API struct {
 	Port  int    `yaml:"port"`
 	Path  string `yaml:"path,omitempty"`
+	ACL   string `yaml:"acl,omitempty"`
 	Debug bool   `yaml:"debug,omitempty"`
 }
 

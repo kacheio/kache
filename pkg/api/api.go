@@ -24,7 +24,9 @@ package api
 
 import (
 	"fmt"
+	"net"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/kacheio/kache/pkg/config"
@@ -33,10 +35,19 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const (
+	ErrMsgUnauthorized = "Not authorized to access the requested resource"
+)
+
 // API is the root API structure.
 type API struct {
 	config config.API
 	server *Server
+
+	// allowedIPs is the access control list containing
+	// the IPs allowed to access the API. If the list is empty,
+	// the IP filter is not active and every request is allowed.
+	allowedIPs map[string]struct{}
 }
 
 // New creates a new API.
@@ -44,11 +55,21 @@ func New(cfg config.API) (*API, error) {
 	srv := NewServer(cfg)
 
 	api := &API{
-		config: cfg,
-		server: srv,
+		config:     cfg,
+		server:     srv,
+		allowedIPs: make(map[string]struct{}),
 	}
 
 	api.createRoutes()
+
+	// Parse allowed IPs from config.
+	if ips := strings.Trim(cfg.ACL, ","); len(ips) > 0 {
+		for _, ip := range strings.Split(ips, ",") {
+			if ipp := net.ParseIP(strings.TrimSpace(ip)); ipp != nil {
+				api.allowedIPs[ipp.String()] = struct{}{}
+			}
+		}
+	}
 
 	return api, nil
 }
@@ -66,8 +87,8 @@ func (a *API) Run() {
 
 // RegisterProxy registers the cache HTTP service.
 func (a *API) RegisterProxy(p server.Server) {
-	a.server.Get("/api/v1/cache/keys", p.CacheKeysHandler)
-	a.server.Get("/api/v1/cache/keys/purge", p.CacheKeyPurgeHandler) // /cache/keys/purge?key=....
+	a.server.Get("/api/v1/cache/keys", a.ipFilter(p.CacheKeysHandler))
+	a.server.Get("/api/v1/cache/keys/purge", a.ipFilter(p.CacheKeyPurgeHandler)) // /cache/keys/purge?key=....
 }
 
 // RegisterRoute registers a new handler at the given path.
@@ -76,7 +97,53 @@ func (a *API) RegisterRoute(method string, path string, handler http.HandlerFunc
 }
 
 func (a *API) createRoutes() {
-	a.RegisterRoute("GET", "/api/version", version.Handler)
+	a.RegisterRoute("GET", "/api/version", a.ipFilter(version.Handler))
+}
+
+// ipFilter is a middleware that checks the original IP against the
+// configured access control list and allows or blocks the request.
+func (a *API) ipFilter(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if len(a.allowedIPs) == 0 {
+			next(w, r)
+		}
+
+		// Get the origianl client IP.
+		ip := originalIP(r)
+
+		// Validate if the IP is allowed or blocked.
+		if _, ok := a.allowedIPs[ip]; !ok {
+			http.Error(w, ErrMsgUnauthorized, http.StatusUnauthorized)
+			return
+		}
+
+		next(w, r)
+	})
+}
+
+// originalIP finds the originating client IP.
+func originalIP(req *http.Request) string {
+	addr := ""
+	// The default is the originating IP. But we try to find better
+	// options because this is almost never the right IP.
+	if parts := strings.Split(req.RemoteAddr, ":"); len(parts) == 2 {
+		addr = parts[0]
+	}
+	// If we have a forwarded-for header, take the address from there.
+	if xff := strings.Trim(req.Header.Get("X-Forwarded-For"), ","); len(xff) > 0 {
+		addrs := strings.Split(xff, ",")
+		last := addrs[len(addrs)-1]
+		if ip := net.ParseIP(last); ip != nil {
+			return ip.String()
+		}
+	}
+	// Otherwise, parse the X-Real-Ip header if it exists.
+	if xri := req.Header.Get("X-Real-Ip"); len(xri) > 0 {
+		if ip := net.ParseIP(xri); ip != nil {
+			return ip.String()
+		}
+	}
+	return addr
 }
 
 type Server struct {
