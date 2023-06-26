@@ -50,10 +50,7 @@ func New(cfg config.API) (*API, error) {
 	api := &API{
 		config: cfg,
 		router: mux.NewRouter(),
-	}
-
-	if len(cfg.ACL) > 0 {
-		api.filter = NewIPFilter(cfg.ACL)
+		filter: NewIPFilter(cfg.ACL),
 	}
 
 	if cfg.Debug {
