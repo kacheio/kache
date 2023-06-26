@@ -98,10 +98,10 @@ func (u Upstreams) Validate() error {
 
 // API holds the API configuration.
 type API struct {
-	Port  int    `yaml:"port"`
-	Path  string `yaml:"path,omitempty"`
-	ACL   string `yaml:"acl,omitempty"`
-	Debug bool   `yaml:"debug,omitempty"`
+	Port   int    `yaml:"port"`
+	Prefix string `yaml:"prefix,omitempty"`
+	ACL    string `yaml:"acl,omitempty"`
+	Debug  bool   `yaml:"debug,omitempty"`
 }
 
 // Log holds the logger configuration.
