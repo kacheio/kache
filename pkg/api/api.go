@@ -48,7 +48,7 @@ type API struct {
 	// filter is the IP filter.
 	filter *IPFilter
 
-	// prefix is the custom path prefix for all API routes. 
+	// prefix is the custom path prefix for all API routes.
 	// Has no effect on purge and debug routes. Default is '/api'.
 	prefix string
 }
@@ -63,7 +63,7 @@ func New(cfg config.API) (*API, error) {
 	}
 
 	if len(cfg.Prefix) > 0 {
-		api.prefix = cfg.Prefix
+		api.prefix = sanitzePrefix(cfg.Prefix)
 	}
 
 	if cfg.Debug {
@@ -107,4 +107,16 @@ func (a *API) RegisterProxy(p server.Server) {
 	a.RegisterRoute(http.MethodDelete, a.prefix+"/cache/keys/purge", a.filter.Wrap((p.CacheKeyDeleteHandler)))
 	// Purge cache key: curl -v -X PURGE -H 'X-Purge-Key: <cache-key>' kacheserver:PORT
 	a.RegisterRoute("PURGE", "/", a.filter.Wrap(p.CacheKeyPurgeHandler))
+}
+
+// sanitizePrefix ensures that the specified prefix contains a leading and no trailing '/'.
+func sanitzePrefix(prefix string) string {
+	p := prefix
+	if p[0] != '/' {
+		p = "/" + p
+	}
+	if p[len(p)-1] == '/' {
+		p = p[0 : len(p)-1]
+	}
+	return p
 }
