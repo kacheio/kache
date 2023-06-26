@@ -33,6 +33,10 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+const (
+	defaultPrefix = "/api"
+)
+
 // API is the root API structure.
 type API struct {
 	// config is the API configuration.
@@ -43,6 +47,10 @@ type API struct {
 
 	// filter is the IP filter.
 	filter *IPFilter
+
+	// prefix is the custom path prefix for all API routes. 
+	// Has no effect on purge and debug routes. Default is '/api'.
+	prefix string
 }
 
 // New creates a new API.
@@ -51,6 +59,11 @@ func New(cfg config.API) (*API, error) {
 		config: cfg,
 		router: mux.NewRouter(),
 		filter: NewIPFilter(cfg.ACL),
+		prefix: defaultPrefix,
+	}
+
+	if len(cfg.Prefix) > 0 {
+		api.prefix = cfg.Prefix
 	}
 
 	if cfg.Debug {
@@ -65,8 +78,7 @@ func New(cfg config.API) (*API, error) {
 // Run starts the API server.
 func (a *API) Run() {
 	port := fmt.Sprintf(":%d", a.config.Port)
-	path := a.config.Path
-	log.Debug().Str("port", port).Str("prefix", path).Msg("Starting API server")
+	log.Debug().Str("port", port).Str("prefix", a.prefix).Msg("Starting API server")
 
 	if err := http.ListenAndServe(port, a); err != nil {
 		log.Fatal().Err(err).Msg("Starting API server")
@@ -79,7 +91,7 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *API) createRoutes() {
-	a.RegisterRoute(http.MethodGet, "/api/version", a.filter.Wrap(version.Handler))
+	a.RegisterRoute(http.MethodGet, a.prefix+"/version", a.filter.Wrap(version.Handler))
 }
 
 // RegisterRoute registers a new handler at the given path.
@@ -90,9 +102,9 @@ func (a *API) RegisterRoute(method string, path string, handler http.HandlerFunc
 // RegisterProxy registers the cache HTTP service.
 func (a *API) RegisterProxy(p server.Server) {
 	// List all keys in the cache.
-	a.RegisterRoute(http.MethodGet, "/api/cache/keys", a.filter.Wrap(p.CacheKeysHandler))
+	a.RegisterRoute(http.MethodGet, a.prefix+"/cache/keys", a.filter.Wrap(p.CacheKeysHandler))
 	// Delete cache key; /cache/keys/purge?key=...
-	a.RegisterRoute(http.MethodDelete, "/api/cache/keys/purge", a.filter.Wrap((p.CacheKeyDeleteHandler)))
+	a.RegisterRoute(http.MethodDelete, a.prefix+"/cache/keys/purge", a.filter.Wrap((p.CacheKeyDeleteHandler)))
 	// Purge cache key: curl -v -X PURGE -H 'X-Purge-Key: <cache-key>' kacheserver:PORT
 	a.RegisterRoute("PURGE", "/", a.filter.Wrap(p.CacheKeyPurgeHandler))
 }
