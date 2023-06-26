@@ -88,7 +88,7 @@ func (a *API) Run() {
 // RegisterProxy registers the cache HTTP service.
 func (a *API) RegisterProxy(p server.Server) {
 	a.server.Get("/api/cache/keys", a.ipFilter(p.CacheKeysHandler))
-	a.server.Get("/api/cache/keys/purge", a.ipFilter(p.CacheKeyPurgeHandler)) // /cache/keys/purge?key=....
+	a.server.Delete("/api/cache/keys/purge", a.ipFilter((p.CacheKeyDeleteHandler))) // /cache/keys/purge?key=...
 }
 
 // RegisterRoute registers a new handler at the given path.
@@ -182,6 +182,6 @@ func (s *Server) Post(path string, handler http.HandlerFunc) {
 	s.RegisterRoute(http.MethodPost, path, handler)
 }
 
-func (s *Server) Purge(path string, handler http.HandlerFunc) {
+func (s *Server) Delete(path string, handler http.HandlerFunc) {
 	s.RegisterRoute(http.MethodDelete, path, handler)
 }

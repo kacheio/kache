@@ -40,7 +40,7 @@ func (s *Server) CacheKeysHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // CacheKeyPurgeHandler deletes the given key from the cache.
-func (s *Server) CacheKeyPurgeHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) CacheKeyDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	key := r.URL.Query().Get("key")
 	if ok := s.cache.Delete(context.Background(), key); !ok {
 		w.WriteHeader(http.StatusNotFound)
