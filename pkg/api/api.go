@@ -41,8 +41,11 @@ const (
 
 // API is the root API structure.
 type API struct {
+	// config is the API configuration.
 	config config.API
-	server *Server
+
+	// router is the API Router.
+	router *mux.Router
 
 	// allowedIPs is the access control list containing
 	// the IPs allowed to access the API. If the list is empty,
@@ -52,15 +55,16 @@ type API struct {
 
 // New creates a new API.
 func New(cfg config.API) (*API, error) {
-	srv := NewServer(cfg)
-
 	api := &API{
 		config:     cfg,
-		server:     srv,
+		router:     mux.NewRouter(),
 		allowedIPs: make(map[string]struct{}),
 	}
-
 	api.createRoutes()
+
+	if cfg.Debug {
+		DebugHandler{}.Append(api.router)
+	}
 
 	// Parse allowed IPs from config.
 	if ips := strings.Trim(cfg.ACL, ","); len(ips) > 0 {
@@ -78,26 +82,35 @@ func New(cfg config.API) (*API, error) {
 func (a *API) Run() {
 	port := fmt.Sprintf(":%d", a.config.Port)
 	path := a.config.Path
-
 	log.Debug().Str("port", port).Str("prefix", path).Msg("Starting API server")
-	if err := http.ListenAndServe(port, a.server); err != nil {
+
+	if err := http.ListenAndServe(port, a); err != nil {
 		log.Fatal().Err(err).Msg("Starting API server")
 	}
 }
 
-// RegisterProxy registers the cache HTTP service.
-func (a *API) RegisterProxy(p server.Server) {
-	a.server.Get("/api/cache/keys", a.ipFilter(p.CacheKeysHandler))
-	a.server.Delete("/api/cache/keys/purge", a.ipFilter((p.CacheKeyDeleteHandler))) // /cache/keys/purge?key=...
+// ServeHTTP serves the API requests.
+func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	a.router.ServeHTTP(w, r)
 }
 
 // RegisterRoute registers a new handler at the given path.
 func (a *API) RegisterRoute(method string, path string, handler http.HandlerFunc) {
-	a.server.RegisterRoute(method, path, handler)
+	a.router.HandleFunc(path, handler).Methods(method)
+}
+
+// RegisterProxy registers the cache HTTP service.
+func (a *API) RegisterProxy(p server.Server) {
+	// List cache keys
+	a.RegisterRoute(http.MethodGet, "/api/cache/keys", a.ipFilter(p.CacheKeysHandler))
+	// Delete cache key; /cache/keys/purge?key=...
+	a.RegisterRoute(http.MethodDelete, "/api/cache/keys/purge", a.ipFilter((p.CacheKeyDeleteHandler)))
+	// TODO: implement PURGE like this:
+	// curl -v -X PURGE -H 'X-Purge-Regex: ^/assets/*.css' varnishserver:6081
 }
 
 func (a *API) createRoutes() {
-	a.RegisterRoute("GET", "/api/version", a.ipFilter(version.Handler))
+	a.RegisterRoute(http.MethodGet, "/api/version", a.ipFilter(version.Handler))
 }
 
 // ipFilter is a middleware that checks the original IP against the
@@ -144,44 +157,4 @@ func originalIP(req *http.Request) string {
 		}
 	}
 	return addr
-}
-
-type Server struct {
-	router *mux.Router
-}
-
-func NewServer(cfg config.API) *Server {
-	srv := &Server{
-		router: mux.NewRouter(),
-	}
-	if cfg.Debug {
-		DebugHandler{}.Append(srv.router)
-	}
-	return srv
-}
-
-func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.router.ServeHTTP(w, r)
-}
-
-func (s *Server) RegisterRoute(method string, path string, handler http.HandlerFunc) {
-	s.router.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != method {
-			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-			return
-		}
-		handler(w, r)
-	})
-}
-
-func (s *Server) Get(path string, handler http.HandlerFunc) {
-	s.RegisterRoute(http.MethodGet, path, handler)
-}
-
-func (s *Server) Post(path string, handler http.HandlerFunc) {
-	s.RegisterRoute(http.MethodPost, path, handler)
-}
-
-func (s *Server) Delete(path string, handler http.HandlerFunc) {
-	s.RegisterRoute(http.MethodDelete, path, handler)
 }
