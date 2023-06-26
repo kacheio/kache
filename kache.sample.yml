@@ -24,7 +24,7 @@ upstreams:
 api: # admin api
   port: 1338
   debug: true
-  # path:
+  # prefix:
 
 ## Loggging configuration
 logging:
