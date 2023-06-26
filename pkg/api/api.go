@@ -89,10 +89,10 @@ func (a *API) RegisterRoute(method string, path string, handler http.HandlerFunc
 
 // RegisterProxy registers the cache HTTP service.
 func (a *API) RegisterProxy(p server.Server) {
-	// List cache keys
+	// List all keys in the cache.
 	a.RegisterRoute(http.MethodGet, "/api/cache/keys", a.filter.Wrap(p.CacheKeysHandler))
 	// Delete cache key; /cache/keys/purge?key=...
 	a.RegisterRoute(http.MethodDelete, "/api/cache/keys/purge", a.filter.Wrap((p.CacheKeyDeleteHandler)))
-	// TODO: implement PURGE like this:
-	// curl -v -X PURGE -H 'X-Purge-Regex: ^/assets/*.css' varnishserver:6081
+	// Purge cache key: curl -v -X PURGE -H 'X-Purge-Key: <cache-key>' kacheserver:PORT
+	a.RegisterRoute("PURGE", "/", a.filter.Wrap(p.CacheKeyPurgeHandler))
 }

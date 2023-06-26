@@ -48,3 +48,19 @@ func (s *Server) CacheKeyDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 }
+
+// CacheKeyPurgeHandler handles a PURGE request and deletes the given key from the
+// cache. The cache key is obtained from a custom request header 'X-Purge-Key'.
+func (s *Server) CacheKeyPurgeHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "PURGE" {
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+	// TODO: implement regex header, e.g. 'X-Purge-Regex: ^/assets/*.css'.
+	key := r.Header.Get("X-Purge-Key")
+	if ok := s.cache.Delete(context.Background(), key); !ok {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
