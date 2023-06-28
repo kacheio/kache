@@ -310,3 +310,24 @@ func TestHttpCacheXCacheHeader(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "X-Test", c.XCacheHeader())
 }
+
+func TestHttpCacheCustomTTL(t *testing.T) {
+	c, err := NewHttpCache(&HttpCacheConfig{
+		DefaultTTL: "3600s",
+		Timeouts: []Timeout{
+			{Path: "/test", TTL: time.Duration(120 * time.Second)},
+			{Path: "/news", TTL: time.Duration(10 * time.Second)},
+			{Path: "^/assets/([a-z0-9].*).css", TTL: time.Duration(180 * time.Second)},
+		},
+	}, nil)
+	require.NoError(t, err)
+	// simple match
+	assert.Equal(t, time.Duration(120*time.Second), c.PathTTL("/test"))
+	// regex match
+	assert.Equal(t, time.Duration(180*time.Second), c.PathTTL("/assets/style54.css"))
+	// sub-paths
+	assert.Equal(t, time.Duration(10*time.Second), c.PathTTL("/news"))
+	assert.Equal(t, time.Duration(10*time.Second), c.PathTTL("/news/latest"))
+	// no match
+	assert.Equal(t, time.Duration(3600*time.Second), c.PathTTL("/no-match"))
+}

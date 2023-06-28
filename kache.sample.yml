@@ -36,9 +36,18 @@ logging:
 cache:
   x_header: true
   x_header_name: x-kache
-  default_ttl: 120s
+
   default_cache_control: "max-age=120s"
   force_cache_control: false
+
+  default_ttl: 1200s
+  timeouts:
+    - path: "news"
+      ttl: "10s"
+    - path: "/archive"
+      ttl: "86400s"
+    - path: "^/assets/([a-z0-9].*).css"
+      ttl: "120s"
 
 ## Cache provider configuration
 provider:
@@ -60,6 +69,5 @@ provider:
   inmemory:
     max_size:
     max_item_size:
-
 ## Cluster configuration
 ## TODO

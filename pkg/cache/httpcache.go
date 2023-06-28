@@ -29,6 +29,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httputil"
+	"regexp"
 	"time"
 
 	"github.com/kacheio/kache/pkg/provider"
@@ -63,6 +64,19 @@ type HttpCacheConfig struct {
 
 	// ForceCacheControl specifies whether to overwrite an existing cache-control header.
 	ForceCacheControl bool `yaml:"force_cache_control"`
+
+	// Timeouts holds the TTLs per path/resource.
+	Timeouts []Timeout `yaml:"timeouts"`
+}
+
+// Timeout holds the custom TTL configuration
+type Timeout struct {
+	// Path is the path the ttl is applied to. String or Regex.
+	Path string `yaml:"path"`
+	// TTL is the corresponing resource ttl.
+	TTL time.Duration `yaml:"ttl"`
+	// Matcher holds the compiled regex.
+	Matcher *regexp.Regexp
 }
 
 // HttpCache is the http cache.
@@ -80,6 +94,13 @@ func NewHttpCache(config *HttpCacheConfig, pdr provider.Provider) (*HttpCache, e
 	if config != nil {
 		cfg = config
 
+	}
+	for i, t := range cfg.Timeouts {
+		r, err := regexp.Compile(t.Path)
+		if err != nil {
+			log.Error().Err(err).Str("path", t.Path).Msg("Invalid path regex.")
+		}
+		cfg.Timeouts[i].Matcher = r
 	}
 	return &HttpCache{cfg, pdr}, nil
 }
@@ -110,7 +131,7 @@ func (c *HttpCache) ForceCacheControl() bool {
 // DefaultTTL returns the TTL as specified in the configuration as a valid duration
 // in seconds. If not specified, the default value is returned.
 func (c *HttpCache) DefaultTTL() time.Duration {
-	if c.config.DefaultTTL == "" {
+	if len(c.config.DefaultTTL) == 0 {
 		return DefaultTTL
 	}
 	t, err := time.ParseDuration(c.config.DefaultTTL)
@@ -118,6 +139,17 @@ func (c *HttpCache) DefaultTTL() time.Duration {
 		return DefaultTTL
 	}
 	return t
+}
+
+// PathTTL matches a path with the configured path regex. If a match
+// is found, the corresponding TTL is returned, otherwise DefaultTTL.
+func (c *HttpCache) PathTTL(p string) time.Duration {
+	for _, t := range c.config.Timeouts {
+		if t.Matcher != nil && t.Matcher.MatchString(p) {
+			return t.TTL
+		}
+	}
+	return c.DefaultTTL()
 }
 
 // FetchResponse fetches a response matching the given request.
@@ -142,7 +174,7 @@ func (c *HttpCache) StoreResponse(_ context.Context, lookup *LookupRequest,
 	response *http.Response, responseTime time.Time) {
 	resp, err := httputil.DumpResponse(response, true)
 	if err != nil {
-		// TODO: handle errors
+		log.Error().Err(err).Send()
 		return
 	}
 	entry := &Entry{
@@ -151,9 +183,10 @@ func (c *HttpCache) StoreResponse(_ context.Context, lookup *LookupRequest,
 	}
 	enc, err := entry.Encode()
 	if err != nil {
+		log.Error().Err(err).Send()
 		return
 	}
-	c.cache.Set(lookup.Key.String(), enc, c.DefaultTTL())
+	c.cache.Set(lookup.Key.String(), enc, c.PathTTL(lookup.Request.URL.Path))
 }
 
 // Deletes deletes the response matching the request key from the cache.
