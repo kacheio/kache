@@ -485,3 +485,19 @@ func TestServeGetFollowedByHead200WithValidation(t *testing.T) {
 		assert.Equal(t, "", resp.Header.Get(XCache))
 	}
 }
+
+func TestUpdateCacheControl(t *testing.T) {
+	h := http.Header{}
+
+	// Set if not present.
+	updateCacheControl(h, "no-store", false)
+	assert.Equal(t, "no-store", h.Get("Cache-Control"))
+
+	// Don't update if present.
+	updateCacheControl(h, "max-age=120", false)
+	assert.Equal(t, "no-store", h.Get("Cache-Control"))
+
+	// Force update.
+	updateCacheControl(h, "max-age=120", true)
+	assert.Equal(t, "max-age=120", h.Get("Cache-Control"))
+}

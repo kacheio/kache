@@ -37,6 +37,8 @@ cache:
   x_header: true
   x_header_name: x-kache
   default_ttl: 120s
+  default_cache_control: "max-age=120s"
+  force_cache_control: false
 
 ## Cache provider configuration
 provider:

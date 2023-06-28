@@ -57,6 +57,12 @@ type HttpCacheConfig struct {
 
 	// Default TTL is the default TTL for cache entries. Overrides 'DefaultTTL'.
 	DefaultTTL string `yaml:"default_ttl"`
+
+	// DefaultCacheControl specifies a default cache-control header.
+	DefaultCacheControl string `yaml:"default_cache_control"`
+
+	// ForceCacheControl specifies whether to overwrite an existing cache-control header.
+	ForceCacheControl bool `yaml:"force_cache_control"`
 }
 
 // HttpCache is the http cache.
@@ -89,6 +95,16 @@ func (c *HttpCache) XCacheHeader() string {
 		return xCache
 	}
 	return c.config.XCacheName
+}
+
+// DefaultCacheControl returns the default cache control.
+func (c *HttpCache) DefaultCacheControl() string {
+	return c.config.DefaultCacheControl
+}
+
+// ForceCacheControl specifies whether to overwrite an existing cache-control header.
+func (c *HttpCache) ForceCacheControl() bool {
+	return c.config.ForceCacheControl
 }
 
 // DefaultTTL returns the TTL as specified in the configuration as a valid duration
