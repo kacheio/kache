@@ -132,6 +132,9 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 		resp = cached.Response()
 	}
 
+	// set or update custom cache control header.
+	updateCacheControl(resp.Header, t.Cache.DefaultCacheControl(), t.Cache.ForceCacheControl())
+
 	// Store new or update validated response.
 	if cache.IsCacheableResponse(resp) && shouldUpdateCachedEntry &&
 		!lookup.ReqCacheControl.NoStore && lookup.Request.Method != "HEAD" {
@@ -193,4 +196,12 @@ func (t *Transport) injectValidationHeaders(ireq *http.Request, header http.Head
 	}
 
 	return req
+}
+
+// updateCacheControl sets or updates the cache-control header.
+func updateCacheControl(header http.Header, val string, force bool) {
+	overwrite := force
+	if _, presentcc := header["Cache-Control"]; !presentcc || overwrite {
+		header["Cache-Control"] = []string{val}
+	}
 }
