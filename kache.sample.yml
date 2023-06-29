@@ -49,6 +49,16 @@ cache:
     - path: "^/assets/([a-z0-9].*).css"
       ttl: "120s"
 
+  exclude:
+    path: # applied to request
+      - "^/admin"
+      - "^/.well-known/acme-challenge/(.*)"
+    header: # applied to requests
+      x_requested_with: "XMLHttpRequest"
+    content: # applied to responses
+      - type: "application/javascript|text/css|image/.*"
+        size: 10000 # max size in bytes
+
 ## Cache provider configuration
 provider:
   # activate specified provider backend
