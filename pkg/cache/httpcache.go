@@ -30,6 +30,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/kacheio/kache/pkg/provider"
@@ -67,6 +68,9 @@ type HttpCacheConfig struct {
 
 	// Timeouts holds the TTLs per path/resource.
 	Timeouts []Timeout `yaml:"timeouts"`
+
+	// Exclude contains the cache exclude configuration.
+	Exclude *Exclude `yaml:"exclude"`
 }
 
 // Timeout holds the custom TTL configuration
@@ -77,6 +81,36 @@ type Timeout struct {
 	TTL time.Duration `yaml:"ttl"`
 	// Matcher holds the compiled regex.
 	Matcher *regexp.Regexp
+}
+
+// Exclude holds the cache ignore information.
+type Exclude struct {
+	// Path contains the paths to be ignored by the cache.
+	Path []string `yaml:"path"`
+
+	// PathMatcher contains the compile `Path` patterns.
+	PathMatcher []*regexp.Regexp
+
+	// Header contains the headers to be ignored by the cache.
+	Header map[string]string `yaml:"header"`
+
+	// Content contains the content types to be ignored by the cache.
+	Content []Content `yaml:"content"`
+}
+
+// Content holds the specific content-type and max content size used for excluding responses from
+// caching. Every response matching the specified content type regex and exceeding the max content
+// size is excluded from cache. If max size is not specified, only type is used to decide wethter
+// to cache the response or not.
+type Content struct {
+	// Type is the content type to be ignored by the cache.
+	Type string `yaml:"type"`
+
+	// TypeMatcher contains the compiled `Type` patterns.
+	TypeMatcher *regexp.Regexp
+
+	// Size is the max content size in bytes.
+	Size int `yaml:"size,omitempty"`
 }
 
 // HttpCache is the http cache.
@@ -95,14 +129,79 @@ func NewHttpCache(config *HttpCacheConfig, pdr provider.Provider) (*HttpCache, e
 		cfg = config
 
 	}
+
+	// Compile custom timeout matchers.
 	for i, t := range cfg.Timeouts {
 		r, err := regexp.Compile(t.Path)
 		if err != nil {
-			log.Error().Err(err).Str("path", t.Path).Msg("Invalid path regex.")
+			log.Error().Err(err).Str("path", t.Path).Msg("Invalid timeout path regex")
 		}
 		cfg.Timeouts[i].Matcher = r
 	}
+
+	// Compile cache exclude matchers.
+	if cfg.Exclude != nil {
+		cfg.Exclude.PathMatcher = make([]*regexp.Regexp, len(cfg.Exclude.Path))
+		for i, p := range cfg.Exclude.Path {
+			r, err := regexp.Compile(p)
+			if err != nil {
+				log.Error().Err(err).Str("path", p).Msg("Invalid exclude path regex")
+			}
+			cfg.Exclude.PathMatcher[i] = r
+		}
+		for i, c := range cfg.Exclude.Content {
+			r, err := regexp.Compile(c.Type)
+			if err != nil {
+				log.Error().Err(err).Str("content", c.Type).Msg("Invalid exclude content type regex")
+			}
+			cfg.Exclude.Content[i].TypeMatcher = r
+		}
+	}
+
 	return &HttpCache{cfg, pdr}, nil
+}
+
+// IsExcludedPath checks wether a specific path is excluded from caching.
+func (c *HttpCache) IsExcludedPath(p string) bool {
+	if c.config.Exclude == nil {
+		return false
+	}
+	for _, m := range c.config.Exclude.PathMatcher {
+		if m != nil && m.MatchString(p) {
+			return true
+		}
+	}
+	return false
+}
+
+// IsExcludedHeader checks wether a specific HTTP header is excluded from caching.
+func (c *HttpCache) IsExcludedHeader(h http.Header) bool {
+	if c.config.Exclude == nil {
+		return false
+	}
+	for k, vv := range c.config.Exclude.Header {
+		if h.Get(strings.ReplaceAll(k, "_", "-")) == vv {
+			return true
+		}
+	}
+	return false
+}
+
+// IsExcludedContent checks if the specific responses content-type and size is excluded from caching.
+func (c *HttpCache) IsExcludedContent(content string, length int64) bool {
+	if c.config.Exclude == nil || len(content) == 0 {
+		return false
+	}
+	for _, t := range c.config.Exclude.Content {
+		if t.TypeMatcher != nil && t.TypeMatcher.MatchString(content) {
+			if t.Size > 0 {
+				// if content exceeds the allowed size, do not cache.
+				return t.Size < int(length)
+			}
+			return true
+		}
+	}
+	return false
 }
 
 // MarkCachedResponses returns true if cached responses should be marked.
