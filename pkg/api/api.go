@@ -103,8 +103,6 @@ func (a *API) RegisterRoute(method string, path string, handler http.HandlerFunc
 func (a *API) RegisterProxy(p server.Server) {
 	// List all keys in the cache.
 	a.RegisterRoute(http.MethodGet, a.prefix+"/cache/keys", a.filter.Wrap(p.CacheKeysHandler))
-	// Delete cache key; /cache/keys/purge?key=...
-	a.RegisterRoute(http.MethodDelete, a.prefix+"/cache/keys/purge", a.filter.Wrap((p.CacheKeyDeleteHandler)))
 	// Purge cache key: curl -v -X PURGE -H 'X-Purge-Key: <cache-key>' kacheserver:PORT
 	a.RegisterRoute("PURGE", "/", a.filter.Wrap(p.CacheKeyPurgeHandler))
 }
