@@ -331,3 +331,72 @@ func TestHttpCacheCustomTTL(t *testing.T) {
 	// no match
 	assert.Equal(t, time.Duration(3600*time.Second), c.PathTTL("/no-match"))
 }
+
+func TestExcludePath(t *testing.T) {
+	c, err := NewHttpCache(&HttpCacheConfig{
+		Exclude: &Exclude{
+			Path: []string{
+				"^/admin",
+				"^/.well-known/acme-challenge/(.*)",
+			},
+		},
+	}, nil)
+	require.NoError(t, err)
+
+	assert.Equal(t, false, c.IsExcludedPath("/"))
+	assert.Equal(t, false, c.IsExcludedPath("/api"))
+	assert.Equal(t, true, c.IsExcludedPath("/admin/config"))
+	assert.Equal(t, true, c.IsExcludedPath("/.well-known/acme-challenge/m4g1C-t0k3n"))
+}
+
+func TestExcludeHeader(t *testing.T) {
+	c, err := NewHttpCache(&HttpCacheConfig{
+		Exclude: &Exclude{
+			Header: map[string]string{
+				"x_requested_with": "XMLHttpRequest",
+			},
+		},
+	}, nil)
+	require.NoError(t, err)
+
+	h := http.Header{}
+	h.Set("X-Requested-With", "XMLHttpRequest")
+	assert.Equal(t, true, c.IsExcludedHeader(h))
+
+	h = http.Header{}
+	h.Set("X-Request-ID", "12345")
+	assert.Equal(t, false, c.IsExcludedHeader(h))
+
+	h = http.Header{}
+	h.Set("Accept-Encoding", "gzip, deflate, br")
+	h.Set("Accept-Language", "de-DE,de;q=0.9")
+	assert.Equal(t, false, c.IsExcludedHeader(h))
+}
+
+func TestIsExcludedContent(t *testing.T) {
+	c, err := NewHttpCache(&HttpCacheConfig{
+		Exclude: &Exclude{
+			Content: []Content{
+				{Type: "application/javascript|text/css|image/.*", Size: 1024},
+				{Type: "application/vnd.*", Size: 1024},
+				{Type: "audio/.*"},
+			},
+		},
+	}, nil)
+	require.NoError(t, err)
+
+	assert.Equal(t, false, c.IsExcludedContent("", 100))
+
+	assert.Equal(t, false, c.IsExcludedContent("text/html; charset=utf-8", 1024))
+	assert.Equal(t, false, c.IsExcludedContent("text/html; charset=utf-8", -1))
+
+	assert.Equal(t, true, c.IsExcludedContent("application/javascript; charset=UTF-8", 1025))
+	assert.Equal(t, false, c.IsExcludedContent("application/javascript; charset=UTF-8", 1023))
+	assert.Equal(t, false, c.IsExcludedContent("application/javascript; charset=UTF-8", -1))
+
+	assert.Equal(t, true, c.IsExcludedContent("image/jpeg", 3495))
+	assert.Equal(t, false, c.IsExcludedContent("video/mp4", 10485))
+	assert.Equal(t, true, c.IsExcludedContent("audio/x-wav", 8096))
+
+	assert.Equal(t, true, c.IsExcludedContent("application/vnd.mozilla.xul+xml", 2024))
+}
