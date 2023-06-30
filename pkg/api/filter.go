@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"net/netip"
 	"strings"
@@ -23,27 +24,37 @@ var defaultBlockedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http
 // containing IPs that are allowed to access the specified resource. If the list of
 // allowed IPs is empty, any request is allowed and bypasses the filter.
 type IPFilter struct {
-	// allowedIPs is the list of IPs allowed to access a resource.
-	// If empty, the IP filter is disabled and every request is allowed.
-	allowedIPs map[netip.Addr]struct{}
+	// allowedIPs and allowedCIDRs are the lists of IP and network addresses allowed to
+	// access a resource. If empty, the IP filter is disabled and every request is allowed.
+	allowedIPs   map[netip.Addr]struct{}
+	allowedCIDRs []*net.IPNet
 }
 
 // NewIPFilter create a new IP filter.
-func NewIPFilter(whitelist string) *IPFilter {
-	f := &IPFilter{
-		allowedIPs: make(map[netip.Addr]struct{}),
-	}
+func NewIPFilter(whitelist string) (*IPFilter, error) {
+	allowedIPs := make(map[netip.Addr]struct{})
+	allowedCIDRs := make([]*net.IPNet, 0, len(whitelist))
 
-	// Parse allowed IPs from config.
+	// Parse allowed IPs and CIDRs from config.
 	if ips := strings.Trim(whitelist, ","); len(ips) > 0 {
 		for _, ip := range strings.Split(ips, ",") {
-			if addr, err := netip.ParseAddr(strings.TrimSpace(ip)); err == nil {
-				f.allowedIPs[addr] = struct{}{}
+			ip = strings.TrimSpace(ip)
+			if _, cidr, err := net.ParseCIDR(ip); err == nil {
+				allowedCIDRs = append(allowedCIDRs, cidr)
+				continue
 			}
+			if addr, err := netip.ParseAddr(ip); err == nil {
+				allowedIPs[addr] = struct{}{}
+				continue
+			}
+			return nil, fmt.Errorf("malformed IP or CIDR address: %v", ip)
 		}
 	}
 
-	return f
+	return &IPFilter{
+		allowedIPs:   allowedIPs,
+		allowedCIDRs: allowedCIDRs,
+	}, nil
 }
 
 // Wrap wraps the specified handler with an IP filter. It filters the request
@@ -81,6 +92,11 @@ func (f *IPFilter) IsAllowed(ip netip.Addr) bool {
 	}
 	if _, ok := f.allowedIPs[ip]; ok {
 		return true
+	}
+	for _, cidr := range f.allowedCIDRs {
+		if cidr.Contains(ip.AsSlice()) {
+			return true
+		}
 	}
 	return false
 }
