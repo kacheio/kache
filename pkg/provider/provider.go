@@ -49,6 +49,9 @@ type Provider interface {
 	// Keys returns a slice of cache keys.
 	Keys(ctx context.Context, prefix string) []string
 
+	// Purge purges all keys matching the specified pattern from the cache.
+	Purge(ctx context.Context, pattern string) error
+
 	// Size returns the number of entries currently stored in the Cache.
 	Size() int
 }
@@ -71,6 +74,9 @@ type RemoteCacheClient interface {
 
 	// Keys returns a slice of cache keys.
 	Keys(ctx context.Context, prefix string) []string
+
+	// Purge purges all keys matching the spedified pattern from the remote cache.
+	Purge(ctx context.Context, pattern string) error
 
 	// Stop closes the client connection.
 	Stop()

@@ -144,3 +144,34 @@ func TestRedisClientJobQueue(t *testing.T) {
 	smallItem := strings.Repeat("A", 127)
 	assert.Error(t, ErrRedisJobQueueFull, cache.Store("A", []byte(smallItem), 120*time.Second))
 }
+
+func TestRedisPurge(t *testing.T) {
+	s := miniredis.RunT(t)
+	config := RedisClientConfig{
+		Endpoint: s.Addr(),
+	}
+	cache, err := NewRedisClient("test", config)
+	require.NoError(t, err)
+
+	items := []string{
+		"https://www.example.com/resources/assets/901.css",
+		"https://www.example.com/resources/assets/fonts/TheSansC5s-4_SemiLight.woff2",
+		"https://www.example.com/resources/assets/fonts/TheSansC5s-4_SemiLightItalic.woff2",
+		"https://www.example.com/resources/assets/image/lazy-image-placeholder.jpg",
+		"https://www.example.com/resources/assets/382-38c6d9b600def80a4c9bea1def6d6ec2b134644f.bundle.js",
+		"https://www.example.com/news",
+		"https://www.example.com/news/article",
+		"https://www.example.com/news/article/asff",
+	}
+	for _, item := range items {
+		_ = cache.Store(item, []byte("test"), 120*time.Second)
+	}
+
+	_ = cache.Purge(context.Background(), "*fonts*")
+	assert.Nil(t, cache.Fetch(context.Background(), items[2]))
+
+	_ = cache.Purge(context.Background(), "*/news*")
+	assert.Nil(t, cache.Fetch(context.Background(), items[5]))
+	assert.Nil(t, cache.Fetch(context.Background(), items[6]))
+	assert.Nil(t, cache.Fetch(context.Background(), items[7]))
+}

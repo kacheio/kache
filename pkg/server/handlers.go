@@ -48,7 +48,7 @@ func (s *Server) CacheKeyPurgeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// TODO: implement regex header, e.g. 'X-Purge-Regex: ^/assets/*.css'.
 	key := r.Header.Get("X-Purge-Key")
-	if ok := s.cache.Delete(context.Background(), key); !ok {
+	if err := s.cache.Purge(context.Background(), key); err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}

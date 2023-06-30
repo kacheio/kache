@@ -25,6 +25,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -231,11 +232,6 @@ func (c *inMemoryCache) _delete(_ context.Context, key string) bool {
 	return c.inner.Remove(key)
 }
 
-// Size returns the number of entries currently stored in the Cache.
-func (c *inMemoryCache) Size() int {
-	return c.inner.Len()
-}
-
 // Keys returns a slice of the keys in the cache, from oldest to newest. It doesn't check TTL
 // of the returned keys (TODO).
 func (c *inMemoryCache) Keys(_ context.Context, prefix string) []string {
@@ -250,4 +246,44 @@ func (c *inMemoryCache) Keys(_ context.Context, prefix string) []string {
 		keys = append(keys, k)
 	}
 	return keys
+}
+
+// Purge purges all keys matching the spedified pattern from the cache.
+func (c *inMemoryCache) Purge(ctx context.Context, pattern string) error {
+	r, err := regexp.Compile(wildcardToRegex(pattern))
+	if err != nil {
+		return err
+	}
+	for _, k := range c.inner.Keys() {
+		if r.MatchString(k) {
+			c.Delete(ctx, k)
+		}
+	}
+	return nil
+}
+
+// Size returns the number of entries currently stored in the Cache.
+func (c *inMemoryCache) Size() int {
+	return c.inner.Len()
+}
+
+// wildcardToRegex converts a wildcard pattern to a regex pattern.
+// Needed since Go does not natively support wildcard matching on strings.
+// TODO: check if we should use a module for this or implement it ourselves and not use regex.
+func wildcardToRegex(pattern string) string {
+	parts := strings.Split(pattern, "*")
+	if len(parts) == 1 {
+		// No *'s, return exact match pattern.
+		return "^" + pattern + "$"
+	}
+	var result strings.Builder
+	for i, p := range parts {
+		// Replace * with .*
+		if i > 0 {
+			_, _ = result.WriteString(".*")
+		}
+		// Quote any regular expression meta character.
+		_, _ = result.WriteString(regexp.QuoteMeta(p))
+	}
+	return "^" + result.String() + "$"
 }

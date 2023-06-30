@@ -71,12 +71,16 @@ func (c *remoteCache) Delete(ctx context.Context, key string) bool {
 	return c.client.Delete(ctx, key) == nil
 }
 
-// Size returns the number of entries currently stored in the Cache.
-// TODO: not implemented yet.
-func (c *remoteCache) Size() int { return -1 }
-
 // Keys returns a slice of cache keys.
-// TODO: not implement yet.
 func (c *remoteCache) Keys(ctx context.Context, prefix string) []string {
 	return c.client.Keys(ctx, prefix)
 }
+
+// Purge purges all keys matching the spedified pattern from the cache.
+func (c *remoteCache) Purge(ctx context.Context, pattern string) error {
+	return c.client.Purge(ctx, pattern)
+}
+
+// Size returns the number of entries currently stored in the Cache.
+// TODO: not implemented yet.
+func (c *remoteCache) Size() int { return -1 }
