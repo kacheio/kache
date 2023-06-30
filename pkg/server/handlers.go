@@ -54,3 +54,16 @@ func (s *Server) CacheKeyPurgeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 }
+
+// CacheFlushHandler handles the DELETE request to flush all keys from the cache.
+func (s *Server) CacheFlushHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+	if err := s.cache.Flush(context.Background()); err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
