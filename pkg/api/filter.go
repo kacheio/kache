@@ -76,6 +76,9 @@ func (f *IPFilter) Wrap(next http.HandlerFunc) http.HandlerFunc {
 
 // IsAllowed checks if the given IP is allowed.
 func (f *IPFilter) IsAllowed(ip netip.Addr) bool {
+	if !ip.IsValid() {
+		return false
+	}
 	if _, ok := f.allowedIPs[ip]; ok {
 		return true
 	}
