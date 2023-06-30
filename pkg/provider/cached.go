@@ -124,6 +124,14 @@ func (c *Cached) Purge(ctx context.Context, pattern string) error {
 	return c.inner.Purge(ctx, pattern)
 }
 
+// Flush deletes all elements from the cache.
+func (c *Cached) Flush(ctx context.Context) error {
+	c.mu.Lock()
+	_ = c.outer.Flush(ctx)
+	c.mu.Unlock()
+	return c.inner.Flush(ctx)
+}
+
 // Size returns the number of entries currently stored in the Cache.
 func (c *Cached) Size() int {
 	return len(c.inner.Keys(context.Background(), ""))

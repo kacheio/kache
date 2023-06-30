@@ -145,7 +145,7 @@ func TestRedisClientJobQueue(t *testing.T) {
 	assert.Error(t, ErrRedisJobQueueFull, cache.Store("A", []byte(smallItem), 120*time.Second))
 }
 
-func TestRedisPurge(t *testing.T) {
+func TestRedisPurgeAndFlush(t *testing.T) {
 	s := miniredis.RunT(t)
 	config := RedisClientConfig{
 		Endpoint: s.Addr(),
@@ -174,4 +174,8 @@ func TestRedisPurge(t *testing.T) {
 	assert.Nil(t, cache.Fetch(context.Background(), items[5]))
 	assert.Nil(t, cache.Fetch(context.Background(), items[6]))
 	assert.Nil(t, cache.Fetch(context.Background(), items[7]))
+
+	// Flush DB.
+	_ = cache.Flush(context.Background())
+	assert.Equal(t, 0, len(cache.Keys(context.Background(), "")))
 }

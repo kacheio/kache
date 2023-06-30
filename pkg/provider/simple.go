@@ -114,3 +114,7 @@ func (c *simpleCache) Keys(_ context.Context, _ string) []string {
 func (c *simpleCache) Purge(_ context.Context, _ string) error {
 	return errors.New("not yet implemented")
 }
+
+func (c *simpleCache) Flush(_ context.Context) error {
+	return errors.New("not yet implemented")
+}

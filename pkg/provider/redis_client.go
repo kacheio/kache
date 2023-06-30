@@ -193,3 +193,8 @@ func (c *redisClient) Purge(ctx context.Context, pattern string) error {
 
 	return iter.Err()
 }
+
+// Flush deletes all keys from the cache.
+func (c *redisClient) Flush(ctx context.Context) error {
+	return c.FlushDB(ctx).Err()
+}
