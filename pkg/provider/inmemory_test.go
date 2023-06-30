@@ -241,7 +241,7 @@ func TestTTLEvictionDisabled(t *testing.T) {
 	assert.Equal(t, 1, int(cache.Size()))
 }
 
-func TestInMemoryPurge(t *testing.T) {
+func TestInMemoryPurgeAndFlush(t *testing.T) {
 	cache, err := NewInMemoryCache(DefaultInMemoryCacheConfig)
 	require.NoError(t, err)
 
@@ -267,4 +267,8 @@ func TestInMemoryPurge(t *testing.T) {
 	assert.Nil(t, cache.Get(context.Background(), items[5]))
 	assert.Nil(t, cache.Get(context.Background(), items[6]))
 	assert.Nil(t, cache.Get(context.Background(), items[7]))
+
+	// Flush DB.
+	_ = cache.Flush(context.Background())
+	assert.Equal(t, 0, len(cache.Keys(context.Background(), "")))
 }

@@ -250,6 +250,9 @@ func (c *inMemoryCache) Keys(_ context.Context, prefix string) []string {
 
 // Purge purges all keys matching the spedified pattern from the cache.
 func (c *inMemoryCache) Purge(ctx context.Context, pattern string) error {
+	if len(pattern) == 0 {
+		return c.Flush(ctx)
+	}
 	r, err := regexp.Compile(wildcardToRegex(pattern))
 	if err != nil {
 		return err
@@ -259,6 +262,12 @@ func (c *inMemoryCache) Purge(ctx context.Context, pattern string) error {
 			c.Delete(ctx, k)
 		}
 	}
+	return nil
+}
+
+// Flush deletes all elements from the cache.
+func (c *inMemoryCache) Flush(ctx context.Context) error {
+	c.reset()
 	return nil
 }
 

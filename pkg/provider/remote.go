@@ -81,6 +81,11 @@ func (c *remoteCache) Purge(ctx context.Context, pattern string) error {
 	return c.client.Purge(ctx, pattern)
 }
 
+// Flush deletes all elements from the cache.
+func (c *remoteCache) Flush(ctx context.Context) error {
+	return c.client.Flush(ctx)
+}
+
 // Size returns the number of entries currently stored in the Cache.
 // TODO: not implemented yet.
 func (c *remoteCache) Size() int { return -1 }
