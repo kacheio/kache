@@ -175,3 +175,21 @@ func (c *redisClient) Stop() {
 		log.Error().Err(err).Msg("Failed to stop the redis client.")
 	}
 }
+
+// Purge purges keys matching the specified pattern from the cache. If the pattern is
+// empty, all keys will be removed from the cache, similar to a `Flush`.
+func (c *redisClient) Purge(ctx context.Context, pattern string) error {
+	iter := c.Scan(ctx, 0, pattern, 0).Iterator()
+
+	for iter.Next(ctx) {
+		key := iter.Val()
+		if len(key) > 0 {
+			// TODO: evaluate non-blocking Unlink.
+			if err := c.Del(ctx, key).Err(); err != nil {
+				return err
+			}
+		}
+	}
+
+	return iter.Err()
+}

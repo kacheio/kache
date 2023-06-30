@@ -116,6 +116,14 @@ func (c *Cached) Keys(ctx context.Context, prefix string) []string {
 	return c.inner.Keys(ctx, prefix) // always satisfied by inner cache.
 }
 
+// Purge purges all keys matching the spedified pattern from the cache.
+func (c *Cached) Purge(ctx context.Context, pattern string) error {
+	c.mu.Lock()
+	_ = c.outer.Purge(ctx, pattern)
+	c.mu.Unlock()
+	return c.inner.Purge(ctx, pattern)
+}
+
 // Size returns the number of entries currently stored in the Cache.
 func (c *Cached) Size() int {
 	return len(c.inner.Keys(context.Background(), ""))
