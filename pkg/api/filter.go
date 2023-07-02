@@ -21,8 +21,9 @@ var defaultBlockedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http
 })
 
 // IPFilter implements a simple IP filter. It is configured with an access control list
-// containing IPs that are allowed to access the specified resource. If the list of
-// allowed IPs is empty, any request is allowed and bypasses the filter.
+// containing IP and CIDR addresses that are allowed to access the specified resource.
+// If the list of allowed addresses is empty, any request is granted access and bypasses
+// the filter without any restrictions.
 type IPFilter struct {
 	// allowedIPs and allowedCIDRs are the lists of IP and network addresses allowed to
 	// access a resource. If empty, the IP filter is disabled and every request is allowed.
@@ -30,12 +31,12 @@ type IPFilter struct {
 	allowedCIDRs []*net.IPNet
 }
 
-// NewIPFilter create a new IP filter.
+// NewIPFilter creates a new IP filter.
 func NewIPFilter(whitelist string) (*IPFilter, error) {
 	allowedIPs := make(map[netip.Addr]struct{})
 	allowedCIDRs := make([]*net.IPNet, 0, len(whitelist))
 
-	// Parse allowed IPs and CIDRs from config.
+	// Parse allowed IP and CIDR addresses.
 	if ips := strings.Trim(whitelist, ","); len(ips) > 0 {
 		for _, ip := range strings.Split(ips, ",") {
 			ip = strings.TrimSpace(ip)
@@ -113,7 +114,7 @@ func originalIP(req *http.Request) (netip.Addr, error) {
 	// If we have a forwarded-for header, take the address from there.
 	if xff := strings.Trim(req.Header.Get("X-Forwarded-For"), ","); len(xff) > 0 {
 		addrs := strings.Split(xff, ",")
-		last := addrs[len(addrs)-1]
+		last := strings.TrimSpace(addrs[len(addrs)-1])
 		return netip.ParseAddr(last)
 	}
 
