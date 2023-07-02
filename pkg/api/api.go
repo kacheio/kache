@@ -55,19 +55,29 @@ type API struct {
 
 // New creates a new API.
 func New(cfg config.API) (*API, error) {
-	api := &API{
-		config: cfg,
-		router: mux.NewRouter(),
-		filter: NewIPFilter(cfg.ACL),
-		prefix: defaultPrefix,
+	prefix := defaultPrefix
+
+	filter, err := NewIPFilter(cfg.ACL)
+	if err != nil {
+		return nil, err
 	}
 
+	router := mux.NewRouter()
+
 	if len(cfg.Prefix) > 0 {
-		api.prefix = sanitzePrefix(cfg.Prefix)
+		prefix = sanitzePrefix(cfg.Prefix)
+		// router = router.PathPrefix(prefix).Subrouter()
 	}
 
 	if cfg.Debug {
-		DebugHandler{}.Append(api.router)
+		DebugHandler{}.Append(router)
+	}
+
+	api := &API{
+		config: cfg,
+		router: router,
+		filter: filter,
+		prefix: prefix,
 	}
 
 	api.createRoutes()
