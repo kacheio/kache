@@ -60,11 +60,10 @@ func New(cfg config.Configuration) (*Kache, error) {
 
 // initAPI initializes the public API.
 func (t *Kache) initAPI() (err error) {
-	t.API, err = api.New(*t.Config.API)
+	t.API, err = api.New(*t.Config.API, t.Server)
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -74,10 +73,6 @@ func (t *Kache) initServer() (err error) {
 	if err != nil {
 		return err
 	}
-
-	// Expose HTTP endpoints
-	t.API.RegisterProxy(*t.Server)
-
 	return nil
 }
 
@@ -88,7 +83,6 @@ func (t *Kache) initProvider() error {
 		return err
 	}
 	t.Provider = &p
-
 	return nil
 }
 
@@ -100,9 +94,9 @@ func (t *Kache) setupModules() error {
 		Name string
 		Init initFn
 	}{
-		{"API", t.initAPI},
 		{"Provider", t.initProvider},
 		{"Server", t.initServer},
+		{"API", t.initAPI},
 	}
 
 	for _, m := range modules {
