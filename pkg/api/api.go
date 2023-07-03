@@ -29,7 +29,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/kacheio/kache/pkg/config"
 	"github.com/kacheio/kache/pkg/server"
-	"github.com/kacheio/kache/pkg/utils/version"
 	"github.com/rs/zerolog/log"
 )
 
@@ -73,16 +72,14 @@ func New(cfg config.API) (*API, error) {
 		DebugHandler{}.Append(router)
 	}
 
-	api := &API{
+	VersionHandler{}.Append(router)
+
+	return &API{
 		config: cfg,
 		router: router,
 		filter: filter,
 		prefix: prefix,
-	}
-
-	api.createRoutes()
-
-	return api, nil
+	}, nil
 }
 
 // Run starts the API server.
@@ -98,10 +95,6 @@ func (a *API) Run() {
 // ServeHTTP serves the API requests.
 func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	a.router.ServeHTTP(w, r)
-}
-
-func (a *API) createRoutes() {
-	a.RegisterRoute(http.MethodGet, a.prefix+"/version", a.filter.Wrap(version.Handler))
 }
 
 // RegisterRoute registers a new handler at the given path.
