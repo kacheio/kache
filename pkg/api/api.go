@@ -25,11 +25,11 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"path"
 
 	"github.com/gorilla/mux"
 	"github.com/kacheio/kache/pkg/config"
 	"github.com/kacheio/kache/pkg/server"
-	"github.com/kacheio/kache/pkg/utils/version"
 	"github.com/rs/zerolog/log"
 )
 
@@ -41,6 +41,9 @@ const (
 type API struct {
 	// config is the API configuration.
 	config config.API
+
+	// server is the core server.
+	server *server.Server
 
 	// router is the API Router.
 	router *mux.Router
@@ -54,7 +57,7 @@ type API struct {
 }
 
 // New creates a new API.
-func New(cfg config.API) (*API, error) {
+func New(cfg config.API, srv *server.Server) (*API, error) {
 	prefix := defaultPrefix
 
 	filter, err := NewIPFilter(cfg.ACL)
@@ -63,23 +66,29 @@ func New(cfg config.API) (*API, error) {
 	}
 
 	router := mux.NewRouter()
+	router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			filter.Wrap(next.ServeHTTP).ServeHTTP(w, r)
+		})
+	})
 
-	if len(cfg.Prefix) > 0 {
-		prefix = sanitzePrefix(cfg.Prefix)
-		// router = router.PathPrefix(prefix).Subrouter()
-	}
+	VersionHandler{}.Append(router)
 
 	if cfg.Debug {
 		DebugHandler{}.Append(router)
 	}
 
+	if len(cfg.Prefix) > 0 {
+		prefix = sanitzePrefix(cfg.Prefix)
+	}
+
 	api := &API{
 		config: cfg,
+		server: srv,
 		router: router,
 		filter: filter,
 		prefix: prefix,
 	}
-
 	api.createRoutes()
 
 	return api, nil
@@ -100,23 +109,26 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	a.router.ServeHTTP(w, r)
 }
 
-func (a *API) createRoutes() {
-	a.RegisterRoute(http.MethodGet, a.prefix+"/version", a.filter.Wrap(version.Handler))
-}
-
 // RegisterRoute registers a new handler at the given path.
-func (a *API) RegisterRoute(method string, path string, handler http.HandlerFunc) {
-	a.router.HandleFunc(path, handler).Methods(method)
+func (a *API) RegisterRoute(method string, p string, handler http.HandlerFunc) {
+	a.router.HandleFunc(path.Join(a.prefix, p), handler).Methods(method)
 }
 
-// RegisterProxy registers the cache HTTP service.
-func (a *API) RegisterProxy(p server.Server) {
-	// List all keys in the cache.
-	a.RegisterRoute(http.MethodGet, a.prefix+"/cache/keys", a.filter.Wrap(p.CacheKeysHandler))
-	// Flush all keys from the cache.
-	a.RegisterRoute(http.MethodDelete, a.prefix+"/cache/flush", a.filter.Wrap(p.CacheFlushHandler))
+// createRoutes registers the core service endpoints.
+func (a *API) createRoutes() {
 	// Purge cache key: curl -v -X PURGE -H 'X-Purge-Key: <cache-key>' kacheserver:PORT
-	a.RegisterRoute("PURGE", "/", a.filter.Wrap(p.CacheKeyPurgeHandler))
+	a.router.Methods("PURGE").Path("/").
+		HandlerFunc(a.filter.Wrap(a.server.CacheKeyPurgeHandler))
+
+	// List all keys in the cache.
+	a.router.Methods(http.MethodGet).
+		PathPrefix(path.Join(a.prefix, "/cache/keys")).
+		HandlerFunc(a.server.CacheKeysHandler)
+
+	// Flush all keys from the cache.
+	a.router.Methods(http.MethodDelete).
+		PathPrefix(path.Join(a.prefix, "/cache/flush")).
+		HandlerFunc(a.server.CacheFlushHandler)
 }
 
 // sanitizePrefix ensures that the specified prefix contains a leading and no trailing '/'.
