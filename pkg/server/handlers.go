@@ -29,6 +29,7 @@ import (
 	"net/http"
 
 	"github.com/kacheio/kache/pkg/cache"
+	"gopkg.in/yaml.v3"
 )
 
 // CacheKeysHandler renders all cache keys in JSON format.
@@ -78,4 +79,16 @@ func (s *Server) CacheConfigHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+}
+
+// CacheConfigHandler renders the current cache config.
+func (s *Server) CacheConfigUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	var c cache.HttpCacheConfig
+	dec := yaml.NewDecoder(r.Body)
+	if err := dec.Decode(&c); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	s.httpcache.UpdateConfig(&c)
+	w.WriteHeader(http.StatusOK)
 }

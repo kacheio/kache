@@ -129,41 +129,50 @@ func NewHttpCache(config *HttpCacheConfig, pdr provider.Provider) (*HttpCache, e
 		cfg = config
 
 	}
+	c := &HttpCache{
+		cache: pdr,
+	}
+	c.UpdateConfig(cfg)
+	return c, nil
+}
 
 // Config returns the current cache config.
 func (c *HttpCache) Config() *HttpCacheConfig {
 	return c.config
 }
 
+// UpdateConfig updates the cache config.
+func (c *HttpCache) UpdateConfig(config *HttpCacheConfig) {
 	// Compile custom timeout matchers.
-	for i, t := range cfg.Timeouts {
+	for i, t := range config.Timeouts {
 		r, err := regexp.Compile(t.Path)
 		if err != nil {
 			log.Error().Err(err).Str("path", t.Path).Msg("Invalid timeout path regex")
 		}
-		cfg.Timeouts[i].Matcher = r
+		config.Timeouts[i].Matcher = r
 	}
 
 	// Compile cache exclude matchers.
-	if cfg.Exclude != nil {
-		cfg.Exclude.PathMatcher = make([]*regexp.Regexp, len(cfg.Exclude.Path))
-		for i, p := range cfg.Exclude.Path {
+	if config.Exclude != nil {
+		config.Exclude.PathMatcher = make([]*regexp.Regexp, len(config.Exclude.Path))
+		for i, p := range config.Exclude.Path {
 			r, err := regexp.Compile(p)
 			if err != nil {
 				log.Error().Err(err).Str("path", p).Msg("Invalid exclude path regex")
 			}
-			cfg.Exclude.PathMatcher[i] = r
+			config.Exclude.PathMatcher[i] = r
 		}
-		for i, c := range cfg.Exclude.Content {
-			r, err := regexp.Compile(c.Type)
+		for i, co := range config.Exclude.Content {
+			r, err := regexp.Compile(co.Type)
 			if err != nil {
-				log.Error().Err(err).Str("content", c.Type).Msg("Invalid exclude content type regex")
+				log.Error().Err(err).Str("content", co.Type).Msg("Invalid exclude content type regex")
 			}
-			cfg.Exclude.Content[i].TypeMatcher = r
+			config.Exclude.Content[i].TypeMatcher = r
 		}
 	}
 
-	return &HttpCache{cfg, pdr}, nil
+	c.config = config
+
 }
 
 // IsExcludedPath checks wether a specific path is excluded from caching.
