@@ -27,6 +27,8 @@ import (
 	"encoding/json"
 
 	"net/http"
+
+	"github.com/kacheio/kache/pkg/cache"
 )
 
 // CacheKeysHandler renders all cache keys in JSON format.
@@ -66,4 +68,14 @@ func (s *Server) CacheFlushHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+// CacheConfigHandler renders the current cache config.
+func (s *Server) CacheConfigHandler(w http.ResponseWriter, r *http.Request) {
+	config := s.httpcache.Config()
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(config); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 }

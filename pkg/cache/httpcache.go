@@ -52,50 +52,50 @@ var DefaultTTL = 120 * time.Second
 type HttpCacheConfig struct {
 	// XCache specifies if the XCache debug header should be attached to responses.
 	// If the response exists in the cache the header value is HIT, MISS otherwise.
-	XCache bool `yaml:"x_header"`
+	XCache bool `yaml:"x_header" json:"x_header"`
 
 	// XCacheName is the name of the X-Cache header.
-	XCacheName string `yaml:"x_header_name"`
+	XCacheName string `yaml:"x_header_name" json:"x_header_name"`
 
 	// Default TTL is the default TTL for cache entries. Overrides 'DefaultTTL'.
-	DefaultTTL string `yaml:"default_ttl"`
+	DefaultTTL string `yaml:"default_ttl" json:"default_ttl"`
 
 	// DefaultCacheControl specifies a default cache-control header.
-	DefaultCacheControl string `yaml:"default_cache_control"`
+	DefaultCacheControl string `yaml:"default_cache_control" json:"default_cache_control"`
 
 	// ForceCacheControl specifies whether to overwrite an existing cache-control header.
-	ForceCacheControl bool `yaml:"force_cache_control"`
+	ForceCacheControl bool `yaml:"force_cache_control" json:"force_cache_control"`
 
 	// Timeouts holds the TTLs per path/resource.
-	Timeouts []Timeout `yaml:"timeouts"`
+	Timeouts []Timeout `yaml:"timeouts" json:"timeouts"`
 
 	// Exclude contains the cache exclude configuration.
-	Exclude *Exclude `yaml:"exclude"`
+	Exclude *Exclude `yaml:"exclude" json:"exclude"`
 }
 
 // Timeout holds the custom TTL configuration
 type Timeout struct {
 	// Path is the path the ttl is applied to. String or Regex.
-	Path string `yaml:"path"`
+	Path string `yaml:"path" json:"path"`
 	// TTL is the corresponing resource ttl.
-	TTL time.Duration `yaml:"ttl"`
+	TTL time.Duration `yaml:"ttl" json:"ttl"`
 	// Matcher holds the compiled regex.
-	Matcher *regexp.Regexp
+	Matcher *regexp.Regexp `json:"-"`
 }
 
 // Exclude holds the cache ignore information.
 type Exclude struct {
 	// Path contains the paths to be ignored by the cache.
-	Path []string `yaml:"path"`
+	Path []string `yaml:"path" json:"path"`
 
 	// PathMatcher contains the compile `Path` patterns.
-	PathMatcher []*regexp.Regexp
+	PathMatcher []*regexp.Regexp `json:"-"`
 
 	// Header contains the headers to be ignored by the cache.
-	Header map[string]string `yaml:"header"`
+	Header map[string]string `yaml:"header" json:"header"`
 
 	// Content contains the content types to be ignored by the cache.
-	Content []Content `yaml:"content"`
+	Content []Content `yaml:"content" json:"content"`
 }
 
 // Content holds the specific content-type and max content size used for excluding responses from
@@ -104,13 +104,13 @@ type Exclude struct {
 // to cache the response or not.
 type Content struct {
 	// Type is the content type to be ignored by the cache.
-	Type string `yaml:"type"`
+	Type string `yaml:"type" json:"type"`
 
 	// TypeMatcher contains the compiled `Type` patterns.
-	TypeMatcher *regexp.Regexp
+	TypeMatcher *regexp.Regexp `json:"-"`
 
 	// Size is the max content size in bytes.
-	Size int `yaml:"size,omitempty"`
+	Size int `yaml:"size,omitempty" json:"size,omitempty"`
 }
 
 // HttpCache is the http cache.
@@ -129,6 +129,11 @@ func NewHttpCache(config *HttpCacheConfig, pdr provider.Provider) (*HttpCache, e
 		cfg = config
 
 	}
+
+// Config returns the current cache config.
+func (c *HttpCache) Config() *HttpCacheConfig {
+	return c.config
+}
 
 	// Compile custom timeout matchers.
 	for i, t := range cfg.Timeouts {

@@ -125,6 +125,11 @@ func (a *API) createRoutes() {
 		PathPrefix(path.Join(a.prefix, "/cache/keys")).
 		HandlerFunc(a.server.CacheKeysHandler)
 
+	// Render the current cache config.
+	a.router.Methods(http.MethodGet).
+		PathPrefix(path.Join(a.prefix, "/cache/config")).
+		HandlerFunc(a.server.CacheConfigHandler)
+
 	// Flush all keys from the cache.
 	a.router.Methods(http.MethodDelete).
 		PathPrefix(path.Join(a.prefix, "/cache/flush")).
