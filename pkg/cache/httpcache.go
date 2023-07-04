@@ -31,6 +31,7 @@ import (
 	"net/http/httputil"
 	"regexp"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/kacheio/kache/pkg/provider"
@@ -116,7 +117,7 @@ type Content struct {
 // HttpCache is the http cache.
 type HttpCache struct {
 	// config is the http cache configuration.
-	config *HttpCacheConfig
+	config atomic.Pointer[HttpCacheConfig]
 
 	// cache holds the inner caching provider.
 	cache provider.Provider
@@ -138,10 +139,17 @@ func NewHttpCache(config *HttpCacheConfig, pdr provider.Provider) (*HttpCache, e
 
 // Config returns the current cache config.
 func (c *HttpCache) Config() *HttpCacheConfig {
-	return c.config
+	return c.loadConfig()
 }
 
-// UpdateConfig updates the cache config.
+func (c *HttpCache) loadConfig() *HttpCacheConfig {
+	if c := c.config.Load(); c != nil {
+		return c
+	}
+	return &HttpCacheConfig{}
+}
+
+// UpdateConfig updates the cache config in a concurrent safe way.
 func (c *HttpCache) UpdateConfig(config *HttpCacheConfig) {
 	// Compile custom timeout matchers.
 	for i, t := range config.Timeouts {
@@ -171,16 +179,17 @@ func (c *HttpCache) UpdateConfig(config *HttpCacheConfig) {
 		}
 	}
 
-	c.config = config
-
+	// Safely update config.
+	c.config.Store(config)
 }
 
-// IsExcludedPath checks wether a specific path is excluded from caching.
+// IsExcludedPath checks whether a specific path is excluded from caching.
 func (c *HttpCache) IsExcludedPath(p string) bool {
-	if c.config.Exclude == nil {
+	config := c.loadConfig()
+	if config.Exclude == nil {
 		return false
 	}
-	for _, m := range c.config.Exclude.PathMatcher {
+	for _, m := range config.Exclude.PathMatcher {
 		if m != nil && m.MatchString(p) {
 			return true
 		}
@@ -188,12 +197,13 @@ func (c *HttpCache) IsExcludedPath(p string) bool {
 	return false
 }
 
-// IsExcludedHeader checks wether a specific HTTP header is excluded from caching.
+// IsExcludedHeader checks whether a specific HTTP header is excluded from caching.
 func (c *HttpCache) IsExcludedHeader(h http.Header) bool {
-	if c.config.Exclude == nil {
+	config := c.loadConfig()
+	if config.Exclude == nil {
 		return false
 	}
-	for k, vv := range c.config.Exclude.Header {
+	for k, vv := range config.Exclude.Header {
 		if h.Get(strings.ReplaceAll(k, "_", "-")) == vv {
 			return true
 		}
@@ -203,10 +213,11 @@ func (c *HttpCache) IsExcludedHeader(h http.Header) bool {
 
 // IsExcludedContent checks if the specific responses content-type and size is excluded from caching.
 func (c *HttpCache) IsExcludedContent(content string, length int64) bool {
-	if c.config.Exclude == nil || len(content) == 0 {
+	config := c.loadConfig()
+	if config.Exclude == nil || len(content) == 0 {
 		return false
 	}
-	for _, t := range c.config.Exclude.Content {
+	for _, t := range config.Exclude.Content {
 		if t.TypeMatcher != nil && t.TypeMatcher.MatchString(content) {
 			if t.Size > 0 {
 				// if content exceeds the allowed size, do not cache.
@@ -220,34 +231,39 @@ func (c *HttpCache) IsExcludedContent(content string, length int64) bool {
 
 // MarkCachedResponses returns true if cached responses should be marked.
 func (c *HttpCache) MarkCachedResponses() bool {
-	return c.config.XCache
+	config := c.loadConfig()
+	return config.XCache
 }
 
 // XCacheHeader returns the XCache debug header key.
 func (c *HttpCache) XCacheHeader() string {
-	if c.config.XCacheName == "" {
+	config := c.loadConfig()
+	if config.XCacheName == "" {
 		return xCache
 	}
-	return c.config.XCacheName
+	return config.XCacheName
 }
 
 // DefaultCacheControl returns the default cache control.
 func (c *HttpCache) DefaultCacheControl() string {
-	return c.config.DefaultCacheControl
+	config := c.loadConfig()
+	return config.DefaultCacheControl
 }
 
 // ForceCacheControl specifies whether to overwrite an existing cache-control header.
 func (c *HttpCache) ForceCacheControl() bool {
-	return c.config.ForceCacheControl
+	config := c.loadConfig()
+	return config.ForceCacheControl
 }
 
 // DefaultTTL returns the TTL as specified in the configuration as a valid duration
 // in seconds. If not specified, the default value is returned.
 func (c *HttpCache) DefaultTTL() time.Duration {
-	if len(c.config.DefaultTTL) == 0 {
+	config := c.loadConfig()
+	if len(config.DefaultTTL) == 0 {
 		return DefaultTTL
 	}
-	t, err := time.ParseDuration(c.config.DefaultTTL)
+	t, err := time.ParseDuration(config.DefaultTTL)
 	if err != nil {
 		return DefaultTTL
 	}
@@ -257,7 +273,8 @@ func (c *HttpCache) DefaultTTL() time.Duration {
 // PathTTL matches a path with the configured path regex. If a match
 // is found, the corresponding TTL is returned, otherwise DefaultTTL.
 func (c *HttpCache) PathTTL(p string) time.Duration {
-	for _, t := range c.config.Timeouts {
+	config := c.loadConfig()
+	for _, t := range config.Timeouts {
 		if t.Matcher != nil && t.Matcher.MatchString(p) {
 			return t.TTL
 		}

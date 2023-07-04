@@ -285,12 +285,8 @@ func TestHttpCacheDefaultConfig(t *testing.T) {
 	c, err := NewHttpCache(nil, nil)
 	require.NoError(t, err)
 
-	assert.Equal(t, "", c.config.DefaultTTL)
 	assert.Equal(t, time.Duration(DefaultTTL), c.DefaultTTL())
-
-	assert.Equal(t, false, c.config.XCache)
 	assert.Equal(t, xCache, c.XCacheHeader())
-
 	assert.Equal(t, false, c.MarkCachedResponses())
 }
 
@@ -299,7 +295,6 @@ func TestHttpCacheDefaultTTL(t *testing.T) {
 		DefaultTTL: "3600s",
 	}, nil)
 	require.NoError(t, err)
-	assert.Equal(t, "3600s", c.config.DefaultTTL)
 	assert.Equal(t, time.Duration(3600*time.Second), c.DefaultTTL())
 }
 
