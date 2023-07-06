@@ -60,15 +60,13 @@ func main() {
 	}
 
 	// Load config file.
-	cfg := config.Configuration{}
-	ldr := config.NewFileLoader()
-
-	if configFile != "" {
-		if err := ldr.Load(configFile, &cfg); err != nil {
-			fmt.Fprintf(os.Stderr, "error loading config from %s: %v\n", configFile, err)
-			os.Exit(1)
-		}
+	ldr, err := config.NewFileLoader(configFile)
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "error loading config from %s: %v\n", configFile, err)
+		os.Exit(1)
 	}
+
+	cfg := ldr.Config()
 
 	if err := cfg.Validate(); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "error validating config:\n%v\n", err)
@@ -80,7 +78,7 @@ func main() {
 	log.Info().Msg("Kache is starting")
 	log.Info().Str("config", configFile).Msg("Kache initializing application")
 
-	t, err := kache.New(cfg)
+	t, err := kache.New(*cfg)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Initializing application")
 	}

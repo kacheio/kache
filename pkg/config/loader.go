@@ -24,28 +24,38 @@ package config
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
+	"sync/atomic"
 
 	"gopkg.in/yaml.v3"
 )
 
 // Loader is the loader interface.
 type Loader interface {
-	Load(string, *Configuration) error
+	Load(ctx context.Context) error
+	Config() *Configuration
 }
 
 // fileLoader loads a configuration from file.
-type fileLoader struct{}
+type fileLoader struct {
+	path   string
+	config atomic.Pointer[Configuration]
+}
 
 // NewFileLoader creates a new config Loader.
-func NewFileLoader() Loader {
-	return &fileLoader{}
+func NewFileLoader(path string) (Loader, error) {
+	ldr := &fileLoader{path: path}
+	if err := ldr.Load(context.Background()); err != nil {
+		return nil, err
+	}
+	return ldr, nil
 }
 
 // LoadConfig reads the YAML-formatted config from filename into config.
-func (l *fileLoader) Load(filename string, config *Configuration) error {
-	buf, err := os.ReadFile(filename)
+func (l *fileLoader) Load(ctx context.Context) error {
+	buf, err := os.ReadFile(l.path)
 	if err != nil {
 		return err
 	}
@@ -53,7 +63,19 @@ func (l *fileLoader) Load(filename string, config *Configuration) error {
 	dec := yaml.NewDecoder(bytes.NewReader(buf))
 	dec.KnownFields(true)
 
-	return dec.Decode(config)
+	config := &Configuration{}
+	if err := dec.Decode(config); err != nil {
+		return err
+	}
+
+	l.config.Store(config)
+
+	return nil
+}
+
+// Config returns the loaded config.
+func (l *fileLoader) Config() *Configuration {
+	return l.config.Load()
 }
 
 // DumpYaml dumps the config to stdout.
