@@ -69,11 +69,12 @@ type Server struct {
 }
 
 // NewServer creates a new configured server.
-func NewServer(cfg *config.Configuration, pdr provider.Provider) (*Server, error) {
+// func NewServer(cfg *config.Configuration, pdr provider.Provider) (*Server, error) {
+func NewServer(cfg *config.Configuration, httpcache *cache.HttpCache) (*Server, error) {
 	srv := &Server{
-		cfg:    cfg,
-		cache:  pdr,
-		stopCh: make(chan bool, 1),
+		cfg:       cfg,
+		httpcache: httpcache,
+		stopCh:    make(chan bool, 1),
 	}
 
 	// Build upstream targets.
@@ -90,18 +91,11 @@ func NewServer(cfg *config.Configuration, pdr provider.Provider) (*Server, error
 	}
 	srv.listeners = listeners
 
-	// Build the HTTP cache with caching provider.
-	httpcache, err := cache.NewHttpCache(cfg.HttpCache, pdr)
-	if err != nil {
-		return nil, err
-	}
-	srv.httpcache = httpcache
-
 	// Create the reverse proxy.
 	proxy := &httputil.ReverseProxy{
 		ErrorHandler: errorHandler,
 		Director:     srv.Director(),
-		Transport:    middleware.NewCachedTransport(httpcache),
+		Transport:    middleware.NewCachedTransport(srv.httpcache),
 	}
 	srv.proxy = proxy
 
