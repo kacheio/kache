@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/kacheio/kache/pkg/api"
+	"github.com/kacheio/kache/pkg/cache"
 	"github.com/kacheio/kache/pkg/config"
 	"github.com/kacheio/kache/pkg/provider"
 	"github.com/kacheio/kache/pkg/server"
@@ -42,6 +43,7 @@ type Kache struct {
 
 	API      *api.API
 	Server   *server.Server
+	Cache    *cache.HttpCache
 	Provider *provider.Provider
 }
 
@@ -69,10 +71,20 @@ func (t *Kache) initAPI() (err error) {
 
 // initServer initializes the core server.
 func (t *Kache) initServer() (err error) {
-	t.Server, err = server.NewServer(&t.Config, *t.Provider)
+	t.Server, err = server.NewServer(&t.Config, t.Cache)
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+// initHTTPCache initializes the HTTP cache with a caching provider.
+func (t *Kache) initHTTPCache() error {
+	c, err := cache.NewHttpCache(t.Config.HttpCache, *t.Provider)
+	if err != nil {
+		return err
+	}
+	t.Cache = c
 	return nil
 }
 
@@ -95,6 +107,7 @@ func (t *Kache) setupModules() error {
 		Init initFn
 	}{
 		{"Provider", t.initProvider},
+		{"HTTPCache", t.initHTTPCache},
 		{"Server", t.initServer},
 		{"API", t.initAPI},
 	}

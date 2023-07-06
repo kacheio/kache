@@ -29,6 +29,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/kacheio/kache/pkg/cache"
 	"github.com/kacheio/kache/pkg/config"
 	"github.com/kacheio/kache/pkg/provider"
 	"github.com/stretchr/testify/assert"
@@ -50,8 +51,9 @@ func TestProxyNoHost(t *testing.T) {
 			// {"test", testServer.URL, ""},
 		},
 	}
-	cache, _ := provider.NewSimpleCache(nil)
-	proxy, _ := NewServer(cfg, cache)
+	p, _ := provider.NewSimpleCache(nil)
+	c, _ := cache.NewHttpCache(nil, p)
+	proxy, _ := NewServer(cfg, c)
 	proxyServer := httptest.NewServer(proxy)
 	defer proxyServer.Close()
 
@@ -77,8 +79,9 @@ func TestProxySingleHost(t *testing.T) {
 			{Name: "test", Addr: testServer.URL, Path: ""},
 		},
 	}
-	cache, _ := provider.NewSimpleCache(nil)
-	proxy, _ := NewServer(cfg, cache)
+	p, _ := provider.NewSimpleCache(nil)
+	c, _ := cache.NewHttpCache(nil, p)
+	proxy, _ := NewServer(cfg, c)
 	proxyServer := httptest.NewServer(proxy)
 	defer proxyServer.Close()
 
@@ -118,8 +121,9 @@ func TestProxyMultiHost(t *testing.T) {
 			{Name: "test 3", Addr: testServer3.URL, Path: "/api"},
 		},
 	}
-	cache, _ := provider.NewSimpleCache(nil)
-	proxy, _ := NewServer(cfg, cache)
+	p, _ := provider.NewSimpleCache(nil)
+	c, _ := cache.NewHttpCache(nil, p)
+	proxy, _ := NewServer(cfg, c)
 	proxyServer := httptest.NewServer(proxy)
 	defer proxyServer.Close()
 
@@ -153,8 +157,9 @@ func TestProxyMultiListener(t *testing.T) {
 			"ep2": {Addr: ":1338"},
 		},
 	}
-	cache, _ := provider.NewSimpleCache(nil)
-	proxy, _ := NewServer(cfg, cache)
+	p, _ := provider.NewSimpleCache(nil)
+	c, _ := cache.NewHttpCache(nil, p)
+	proxy, _ := NewServer(cfg, c)
 	proxy.Start(context.Background())
 	defer proxy.Stop()
 
