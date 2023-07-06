@@ -78,7 +78,7 @@ func main() {
 	log.Info().Msg("Kache is starting")
 	log.Info().Str("config", configFile).Msg("Kache initializing application")
 
-	t, err := kache.New(*cfg)
+	t, err := kache.New(ldr)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Initializing application")
 	}
