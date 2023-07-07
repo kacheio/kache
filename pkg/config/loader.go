@@ -36,6 +36,7 @@ import (
 type Loader interface {
 	Load(ctx context.Context) error
 	Config() *Configuration
+	Path() string
 }
 
 // fileLoader loads a configuration from file.
@@ -76,6 +77,11 @@ func (l *fileLoader) Load(ctx context.Context) error {
 // Config returns the loaded config.
 func (l *fileLoader) Config() *Configuration {
 	return l.config.Load()
+}
+
+// Path returns the file path.
+func (l *fileLoader) Path() string {
+	return l.path
 }
 
 // DumpYaml dumps the config to stdout.

@@ -24,6 +24,7 @@ package kache
 
 import (
 	"context"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -39,7 +40,8 @@ import (
 
 // Kache is the root data structure for Kache.
 type Kache struct {
-	Config config.Configuration
+	Config *config.Configuration
+	loader config.Loader
 
 	API      *api.API
 	Server   *server.Server
@@ -48,9 +50,10 @@ type Kache struct {
 }
 
 // New makes a new Kache.
-func New(cfg config.Configuration) (*Kache, error) {
+func New(loader config.Loader) (*Kache, error) {
 	kache := &Kache{
-		Config: cfg,
+		loader: loader,
+		Config: loader.Config(),
 	}
 
 	if err := kache.setupModules(); err != nil {
@@ -71,7 +74,7 @@ func (t *Kache) initAPI() (err error) {
 
 // initServer initializes the core server.
 func (t *Kache) initServer() (err error) {
-	t.Server, err = server.NewServer(&t.Config, t.Cache)
+	t.Server, err = server.NewServer(t.Config, t.Cache)
 	if err != nil {
 		return err
 	}
@@ -122,11 +125,46 @@ func (t *Kache) setupModules() error {
 	return nil
 }
 
+// reloadConfig reloads the config.
+func (t *Kache) reloadConfig(ctx context.Context) error {
+	if err := t.loader.Load(ctx); err != nil {
+		return err
+	}
+	t.Config = t.loader.Config()
+	t.Cache.UpdateConfig(t.Config.HttpCache)
+	return nil
+}
+
 // Run starts the Kache and its services.
 func (t *Kache) Run() error {
 	// Start API server
 	go func() {
 		t.API.Run()
+	}()
+
+	// Reload config on SIGHUP.
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGHUP)
+	stop := make(chan struct{})
+	defer func() {
+		stop <- struct{}{}
+		close(stop)
+	}()
+	go func() {
+		for {
+			select {
+			case s := <-signals:
+				if s == syscall.SIGHUP {
+					log.Info().Msg("Received SIGHUP, reloading config")
+					if err := t.reloadConfig(context.Background()); err != nil {
+						log.Error().Err(err).Msg("Error reloading config")
+					}
+					continue
+				}
+			case <-stop:
+				return
+			}
+		}
 	}()
 
 	// Setup signals to gracefully shutdown in response to SIGTERM or SIGINT
