@@ -11,6 +11,7 @@ linters:
     - unused
     - godox
     - lll
+    - misspell
 run:
   skip-dirs:
     - ^.git
@@ -22,6 +23,8 @@ linters-settings:
   godox:
     keywords:
       - FIXME
+  misspell:
+    locale: US
   revive:
     # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md
     severity: error
