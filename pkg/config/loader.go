@@ -25,6 +25,8 @@ package config
 import (
 	"bytes"
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"sync/atomic"
@@ -34,44 +36,51 @@ import (
 
 // Loader is the loader interface.
 type Loader interface {
-	Load(ctx context.Context) error
+	Load(ctx context.Context) (bool, error)
 	Config() *Configuration
 	Path() string
 }
 
 // fileLoader loads a configuration from file.
 type fileLoader struct {
-	path   string
-	config atomic.Pointer[Configuration]
+	path       string
+	config     atomic.Pointer[Configuration]
+	configHash []byte
 }
 
 // NewFileLoader creates a new config Loader.
 func NewFileLoader(path string) (Loader, error) {
 	ldr := &fileLoader{path: path}
-	if err := ldr.Load(context.Background()); err != nil {
+	if _, err := ldr.Load(context.Background()); err != nil {
 		return nil, err
 	}
 	return ldr, nil
 }
 
-// LoadConfig reads the YAML-formatted config from filename into config.
-func (l *fileLoader) Load(ctx context.Context) error {
+// Load reads the YAML-formatted config.
+func (l *fileLoader) Load(ctx context.Context) (bool, error) {
 	buf, err := os.ReadFile(l.path)
 	if err != nil {
-		return err
+		return false, err
 	}
+
+	sum := md5.Sum(buf)
+	hash := sum[:]
+	if bytes.Equal(l.configHash, hash) {
+		return false, nil
+	}
+	l.configHash = hash
 
 	dec := yaml.NewDecoder(bytes.NewReader(buf))
 	dec.KnownFields(true)
 
 	config := &Configuration{}
 	if err := dec.Decode(config); err != nil {
-		return err
+		return false, err
 	}
-
 	l.config.Store(config)
 
-	return nil
+	return true, nil
 }
 
 // Config returns the loaded config.
@@ -84,6 +93,11 @@ func (l *fileLoader) Path() string {
 	return l.path
 }
 
+// Checksum return the calculated checksum of the config.
+func (l *fileLoader) Checksum() string {
+	return hex.EncodeToString(l.configHash)
+}
+
 // DumpYaml dumps the config to stdout.
 func DumpYaml(config *Configuration) {
 	out, err := yaml.Marshal(config)
@@ -93,5 +107,3 @@ func DumpYaml(config *Configuration) {
 		_, _ = fmt.Printf("%s\n", out)
 	}
 }
-
-// TODO: Find configuration.

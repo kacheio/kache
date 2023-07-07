@@ -127,15 +127,21 @@ func (t *Kache) setupModules() error {
 
 // reloadConfig reloads the config.
 func (t *Kache) reloadConfig(ctx context.Context) error {
-	if err := t.loader.Load(ctx); err != nil {
+	reloaded, err := t.loader.Load(ctx)
+	if err != nil {
 		return err
 	}
+	if !reloaded {
+		log.Info().Msg("Config not reloaded, no changes detected")
+		return nil
+	}
+	log.Info().Msg("Config reloaded")
 	t.Config = t.loader.Config()
 	t.Cache.UpdateConfig(t.Config.HttpCache)
 	return nil
 }
 
-// Run starts the Kache and its services.
+// Run starts the Kache and its services.s
 func (t *Kache) Run() error {
 	// Start API server
 	go func() {
@@ -147,7 +153,6 @@ func (t *Kache) Run() error {
 	signal.Notify(signals, syscall.SIGHUP)
 	stop := make(chan struct{})
 	defer func() {
-		stop <- struct{}{}
 		close(stop)
 	}()
 	go func() {
