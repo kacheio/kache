@@ -26,6 +26,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/kacheio/kache/pkg/config"
 	"github.com/kacheio/kache/pkg/kache"
@@ -35,8 +36,11 @@ import (
 )
 
 const (
-	configFileOption = "config.file"
-	configFileName   = "kache.yml"
+	configFileName = "kache.yml"
+
+	configFileOption          = "config.file"
+	configAutoReloadOption    = "config.auto-reload"
+	configWatchIntervalOption = "config.watch-interval"
 
 	versionOption = "version"
 	versionUsage  = "Print application version and exit."
@@ -49,6 +53,12 @@ func main() {
 	var printVersion bool
 	flag.BoolVar(&printVersion, versionOption, false, versionUsage)
 
+	var configAutoReload bool
+	flag.BoolVar(&configAutoReload, configAutoReloadOption, false, "")
+
+	var configWatchInterval time.Duration
+	flag.DurationVar(&configWatchInterval, configWatchIntervalOption, 10*time.Second, "")
+
 	var configFile string
 	flag.StringVar(&configFile, configFileOption, configFileName, "")
 
@@ -60,7 +70,7 @@ func main() {
 	}
 
 	// Load config file.
-	ldr, err := config.NewFileLoader(configFile)
+	ldr, err := config.NewLoader(configFile, configAutoReload, configWatchInterval)
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "error loading config from %s: %v\n", configFile, err)
 		os.Exit(1)

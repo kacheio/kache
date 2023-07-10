@@ -41,7 +41,7 @@ import (
 // Kache is the root data structure for Kache.
 type Kache struct {
 	Config *config.Configuration
-	loader config.Loader
+	loader *config.Loader
 
 	API      *api.API
 	Server   *server.Server
@@ -50,7 +50,7 @@ type Kache struct {
 }
 
 // New makes a new Kache.
-func New(loader config.Loader) (*Kache, error) {
+func New(loader *config.Loader) (*Kache, error) {
 	kache := &Kache{
 		loader: loader,
 		Config: loader.Config(),
@@ -125,7 +125,7 @@ func (t *Kache) setupModules() error {
 	return nil
 }
 
-// reloadConfig reloads the config.
+// reloadConfig reloads the config, triggered by SIGHUP event.
 func (t *Kache) reloadConfig(ctx context.Context) error {
 	reloaded, err := t.loader.Load(ctx)
 	if err != nil {
@@ -135,18 +135,35 @@ func (t *Kache) reloadConfig(ctx context.Context) error {
 		log.Info().Msg("Config not reloaded, no changes detected")
 		return nil
 	}
+	t.applyConfig()
 	log.Info().Msg("Config reloaded")
-	t.Config = t.loader.Config()
-	t.Cache.UpdateConfig(t.Config.HttpCache)
 	return nil
 }
 
-// Run starts the Kache and its services.s
+// applyConfig applies the config to modules.
+func (t *Kache) applyConfig() {
+	t.Config = t.loader.Config()
+	t.Cache.UpdateConfig(t.Config.HttpCache)
+}
+
+// Run starts the Kache and its services.
 func (t *Kache) Run() error {
-	// Start API server
-	go func() {
-		t.API.Run()
-	}()
+	// Watch and reload config.
+	if t.loader.AutoReload() {
+		if err := t.loader.Watch(context.Background()); err != nil {
+			return err
+		}
+		defer t.loader.Close()
+		go func() {
+			for changed := range t.loader.Events {
+				if !changed {
+					continue
+				}
+				log.Info().Msg("Config file changed, reloading config")
+				t.applyConfig()
+			}
+		}()
+	}
 
 	// Reload config on SIGHUP.
 	signals := make(chan os.Signal, 1)
@@ -172,7 +189,12 @@ func (t *Kache) Run() error {
 		}
 	}()
 
-	// Setup signals to gracefully shutdown in response to SIGTERM or SIGINT
+	// Start API server
+	go func() {
+		t.API.Run()
+	}()
+
+	// Setup signals to gracefully shutdown on SIGTERM or SIGINT
 	ctx, _ := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM,
 	)
