@@ -30,27 +30,35 @@ import (
 	"fmt"
 	"os"
 	"sync/atomic"
+	"time"
 
+	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v3"
 )
 
-// Loader is the loader interface.
-type Loader interface {
-	Load(ctx context.Context) (bool, error)
-	Config() *Configuration
-	Path() string
-}
+// Loader loads a configuration from file.
+type Loader struct {
+	path string
 
-// fileLoader loads a configuration from file.
-type fileLoader struct {
-	path       string
+	watch         bool
+	watchInterval time.Duration
+
 	config     atomic.Pointer[Configuration]
 	configHash []byte
+
+	Events chan bool
+	done   chan struct{}
 }
 
 // NewFileLoader creates a new config Loader.
-func NewFileLoader(path string) (Loader, error) {
-	ldr := &fileLoader{path: path}
+func NewLoader(path string, watch bool, interval time.Duration) (*Loader, error) {
+	ldr := &Loader{
+		path:          path,
+		watch:         watch,
+		watchInterval: interval,
+		Events:        make(chan bool),
+		done:          make(chan struct{}),
+	}
 	if _, err := ldr.Load(context.Background()); err != nil {
 		return nil, err
 	}
@@ -58,7 +66,7 @@ func NewFileLoader(path string) (Loader, error) {
 }
 
 // Load reads the YAML-formatted config.
-func (l *fileLoader) Load(ctx context.Context) (bool, error) {
+func (l *Loader) Load(ctx context.Context) (bool, error) {
 	buf, err := os.ReadFile(l.path)
 	if err != nil {
 		return false, err
@@ -78,24 +86,72 @@ func (l *fileLoader) Load(ctx context.Context) (bool, error) {
 	if err := dec.Decode(config); err != nil {
 		return false, err
 	}
+
 	l.config.Store(config)
 
 	return true, nil
 }
 
 // Config returns the loaded config.
-func (l *fileLoader) Config() *Configuration {
+func (l *Loader) Config() *Configuration {
 	return l.config.Load()
 }
 
 // Path returns the file path.
-func (l *fileLoader) Path() string {
+func (l *Loader) Path() string {
 	return l.path
 }
 
-// Checksum return the calculated checksum of the config.
-func (l *fileLoader) Checksum() string {
+// Checksum returns the calculated checksum of the config.
+func (l *Loader) Checksum() string {
 	return hex.EncodeToString(l.configHash)
+}
+
+// AutoReload returns true if auto-reloading is enabled.
+func (l *Loader) AutoReload() bool {
+	return l.watch
+}
+
+// Watch watches and reloads the config file if changed.
+func (l *Loader) Watch(ctx context.Context) error {
+	if _, err := l.Load(ctx); err != nil {
+		return err
+	}
+	go func() {
+		tick := time.NewTicker(l.watchInterval)
+		defer tick.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-tick.C:
+			}
+
+			changed, err := l.Load(ctx)
+			if err != nil {
+				log.Error().Err(err).Msg("Error reloading config file")
+			}
+			if changed {
+				l.notifyChange()
+			}
+		}
+	}()
+	return nil
+}
+
+// Close closes the events channel.
+func (l *Loader) Close() {
+	close(l.done)
+}
+
+// notifyChange sends to the Event channel.
+func (l *Loader) notifyChange() bool {
+	select {
+	case l.Events <- true:
+		return true
+	case <-l.done:
+	}
+	return false
 }
 
 // DumpYaml dumps the config to stdout.
