@@ -32,3 +32,6 @@ logs/
 /kache.yml
 
 dist/
+bench/
+
+TODO*
