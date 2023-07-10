@@ -65,8 +65,8 @@ release: ## Make release.
 snap-release: ## Make snapshot release.
 	goreleaser release --snapshot --clean --skip-publish
 
-run: ## Run dev.
-	@go run $(GO_FLAGS) cmd/kache/main.go -config.file kache.yml
+run: build ## Run dev.
+	@./kache
 
 build: ## Build.
 	@go build -o kache $(GO_FLAGS) cmd/kache/main.go
