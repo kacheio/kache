@@ -91,11 +91,13 @@ func NewServer(cfg *config.Configuration, httpcache *cache.HttpCache) (*Server, 
 	}
 	srv.listeners = listeners
 
+	transport := middleware.NewCoalesced(middleware.NewCachedTransport(srv.httpcache))
+
 	// Create the reverse proxy.
 	proxy := &httputil.ReverseProxy{
 		ErrorHandler: errorHandler,
 		Director:     srv.Director(),
-		Transport:    middleware.NewCachedTransport(srv.httpcache),
+		Transport:    transport,
 	}
 	srv.proxy = proxy
 
