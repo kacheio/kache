@@ -38,8 +38,8 @@ import (
 )
 
 // upstream is the test transport holding a request counter that gets
-// incremented on each request hitting the upstream. Depending on the 
-// `Coalesced` http request header, it either responds instantly or 
+// incremented on each request hitting the upstream. Depending on the
+// `Coalesced` http request header, it either responds instantly or
 // supends its operation until signaled to resume.
 type upstream struct {
 	wait chan struct{}
