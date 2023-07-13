@@ -19,7 +19,7 @@ GO_FLAGS := -ldflags "\
 
 TEST_TIMEOUT := 20m 
 
-.PHONY: all lint format test test-with-race mod mod-check mod-update mod-vendor clean license release snap-release run build build-run
+.PHONY: all lint format test test-with-race mod mod-check mod-update mod-vendor clean license license-check release snap-release run build build-run
 
 lint: ## Run linters.
 	@printf $(COLOR) "Run linters..."
@@ -54,6 +54,9 @@ clean: ## Clean test results.
 
 license: ## Add license header.
 	go run tools/license/main.go -license=LICENSE
+
+license-check: ## Check license header.
+	go run tools/license/main.go -license=LICENSE -check
 
 release: ## Make release.
 	goreleaser release --skip-publish
