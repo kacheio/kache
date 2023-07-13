@@ -167,7 +167,7 @@ func removeLicenseHeader(s string) string {
 func main() {
 	licenseFile := flag.String("license", licenseDefaultFile, "License file")
 	root := flag.String("dir", ".", "Root directory path")
-	list := flag.Bool("list", false, "List all files without a license header (no update)")
+	check := flag.Bool("check", false, "Lists all files without a license header (no update)")
 	force := flag.Bool("force", false, "Force forces an update of the license header")
 
 	flag.Parse()
@@ -213,7 +213,7 @@ func main() {
 		return
 	}
 
-	if *list {
+	if *check && len(filesToUpdate) > 0 {
 		fmt.Println("Source files without license headers:")
 		for _, file := range filesToUpdate {
 			fmt.Println(file)
