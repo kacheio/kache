@@ -218,7 +218,7 @@ func main() {
 		for _, file := range filesToUpdate {
 			fmt.Println(file)
 		}
-		return
+		os.Exit(1)
 	}
 
 	// Add or update license headers.

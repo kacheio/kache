@@ -36,6 +36,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
+      - name: Run license header check
+        run: make license-check
+
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
