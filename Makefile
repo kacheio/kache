@@ -19,7 +19,9 @@ GO_FLAGS := -ldflags "\
 
 TEST_TIMEOUT := 20m 
 
-.PHONY: all lint format test test-with-race mod mod-check mod-update mod-vendor clean license license-check release snap-release run build build-run
+verify: lint license-check mod-check ## Verify source (code, licencse, modules). 
+
+check: verify test-with-race build ## Check the build (lint, test, build).
 
 lint: ## Run linters.
 	@printf $(COLOR) "Run linters..."
@@ -29,7 +31,7 @@ format: ## Run gofmt.
 	@printf $(COLOR) "Run formatters..."
 	@gofmt -s -l -w $(SRCS)
 
-test: ## Run all tests.
+test: ## Run all unit tests.
 	@go test -timeout=$(TEST_TIMEOUT) ./...
 
 test-with-race: ## Run all unit tests with data race detect.
