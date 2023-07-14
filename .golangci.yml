@@ -3,6 +3,8 @@ linters:
   disable-all: true
   enable:
     - errcheck
+    - gofmt
+    - gofumpt
     - goimports
     - gosimple
     - revive
