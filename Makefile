@@ -19,6 +19,11 @@ GO_FLAGS := -ldflags "\
 
 TEST_TIMEOUT := 20m 
 
+.PHONY: all help verify check lint format test test-with-race mod mod-check mod-update mod-vendor clean license license-check release snap-release run build build-run
+
+help: ## Print help.
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' Makefile | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
 verify: lint license-check mod-check ## Verify source (code, licencse, modules). 
 
 check: verify test-with-race build ## Check the build (lint, test, build).
