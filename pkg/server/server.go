@@ -41,6 +41,7 @@ import (
 )
 
 const (
+	DefaultTimeout                = 30 * time.Second
 	ServerGracefulShutdownTimeout = 5 * time.Second
 )
 
@@ -105,7 +106,12 @@ func NewServer(cfg *config.Configuration, httpcache *cache.HttpCache) (*Server, 
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.proxy.ServeHTTP(w, r)
+	timeout := DefaultTimeout
+	http.TimeoutHandler(
+		s.proxy,
+		timeout,
+		fmt.Sprintf("Request timeout after %v", timeout),
+	).ServeHTTP(w, r)
 }
 
 // errorHandler is the proxy error handler.
