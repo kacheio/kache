@@ -111,8 +111,8 @@ type Log struct {
 	Color  bool   `yaml:"color,omitempty"`
 
 	File       string `yaml:"file,omitempty"`
-	MaxSize    int    `yaml:"maxSize,omitempty"`
-	MaxAge     int    `yaml:"maxAge,omitempty"`
-	MaxBackups int    `yaml:"maxBackups,omitempty"`
+	MaxSize    int    `yaml:"max_size,omitempty"`
+	MaxAge     int    `yaml:"max_age,omitempty"`
+	MaxBackups int    `yaml:"max_backups,omitempty"`
 	Compress   bool   `yaml:"compress,omitempty"`
 }
