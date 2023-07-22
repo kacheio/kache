@@ -27,10 +27,10 @@ Or, build from source:
 git clone https://github.com/kacheio/kache
 ```
 
-If you want to run kache with a distributed caching backend (e.g. Redis), you can use and run this example [docker-compose](https://github.com/kacheio/kache/blob/main/cloud/docker-compose.yml) as a starting point:
+If you want to run kache with a distributed caching backend (e.g. Redis), you can use and run this example [docker-compose](https://github.com/kacheio/kache/blob/main/cloud/docker/docker-compose.yml) as a starting point:
 
 ```
-docker-compose -f cloud/docker-compose.yml up 
+docker-compose -f cloud/docker/docker-compose.yml up 
 ```
 
 ## Contributing 
