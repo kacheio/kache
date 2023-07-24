@@ -284,19 +284,20 @@ func (c *HttpCache) PathTTL(p string) time.Duration {
 
 // FetchResponse fetches a response matching the given request.
 func (c *HttpCache) FetchResponse(ctx context.Context, lookup LookupRequest) *LookupResult {
-	if cached := c.cache.Get(ctx, lookup.Key.String()); cached != nil {
-		entry, err := DecodeEntry(cached)
-		if err != nil {
-			return &LookupResult{}
-		}
-		res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(entry.Body)), lookup.Request)
-		if err != nil {
-			log.Error().Err(err).Send()
-			return &LookupResult{}
-		}
-		return lookup.makeResult(res, time.Unix(entry.Timestamp, 0))
+	cached := c.cache.Get(ctx, lookup.Key.String())
+	if cached == nil {
+		return &LookupResult{}
 	}
-	return &LookupResult{}
+	entry, err := DecodeEntry(cached)
+	if err != nil {
+		return &LookupResult{}
+	}
+	res, err := http.ReadResponse(bufio.NewReader(bytes.NewBuffer(entry.Body)), lookup.Request)
+	if err != nil {
+		log.Error().Err(err).Send()
+		return &LookupResult{}
+	}
+	return lookup.makeResult(res, time.Unix(entry.Timestamp, 0))
 }
 
 // StoreResponse stores a response in the cache.
