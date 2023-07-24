@@ -51,6 +51,9 @@ var s struct {
 var (
 	// Fake time source.
 	ts *clock.EventTime
+
+	// Cache mode.
+	strict = true
 )
 
 // currentTime returns the fake time.
@@ -69,6 +72,7 @@ func setup(t *testing.T) {
 
 	p, _ := provider.NewSimpleCache(nil)
 	h, _ := cache.NewHttpCache(&cache.HttpCacheConfig{
+		Strict:     strict,
 		XCache:     true,
 		XCacheName: XCache,
 	}, p)
@@ -500,4 +504,120 @@ func TestUpdateCacheControl(t *testing.T) {
 	// Force update.
 	updateCacheControl(h, "max-age=120", true)
 	assert.Equal(t, "max-age=120", h.Get("Cache-Control"))
+}
+
+func TestNoStrictMissInsertHit(t *testing.T) {
+	strict = false
+	setup(t)
+	t.Cleanup(func() { teardown(t) })
+
+	s.mux.HandleFunc("/test_miss_insert_hit", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Date", currentTime().Format(http.TimeFormat))
+		w.Header().Set("Cache-Control", "public, max-age=9")
+		w.Header().Set("Content-length", "2")
+		_, _ = w.Write([]byte("42"))
+	}))
+
+	req, err := http.NewRequest("GET", s.server.URL+"/test_miss_insert_hit", nil)
+	require.NoError(t, err)
+
+	// Send first request, get response from upstream.
+	{
+		resp, err := s.client.Do(req)
+		require.NoError(t, err)
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, "", resp.Header.Get(XCache))
+		assert.Equal(t, "", resp.Header.Get("Age"))
+		assert.Equal(t, "42", string(body))
+	}
+
+	// Advance time.
+	advanceTime(10 * time.Second)
+
+	// Send second request, get response from cache. Although the
+	// response is stale and has already expired (max-age=9), it is
+	// retrieved from the cache because strict mode is disabled and
+	// any validation based on the Cache-Control header is ignored.
+	// Same is true for Cache-Control set to `no-store` or `private`.
+	{
+		resp, err := s.client.Do(req)
+		require.NoError(t, err)
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, "HIT", resp.Header.Get(XCache))
+		assert.Equal(t, "10", resp.Header.Get("Age"))
+		assert.Equal(t, "42", string(body))
+	}
+}
+
+func TestNoStrictExpiredValidated(t *testing.T) {
+	strict = false
+	setup(t)
+	t.Cleanup(func() { teardown(t) })
+
+	s.mux.HandleFunc("/test_expired_validated", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("if-none-match") == "abc123" {
+			w.Header().Set("Date", currentTime().Format(http.TimeFormat))
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+		w.Header().Set("Date", currentTime().Format(http.TimeFormat))
+		w.Header().Set("Cache-Control", "max-age=10")
+		w.Header().Set("Content-length", "2")
+		w.Header().Set("Etag", "abc123")
+		_, _ = w.Write([]byte("42"))
+	}))
+
+	req, err := http.NewRequest("GET", s.server.URL+"/test_expired_validated", nil)
+	require.NoError(t, err)
+
+	// Send first request, get response from upstream.
+	{
+		resp, err := s.client.Do(req)
+		require.NoError(t, err)
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, "", resp.Header.Get("Age"))
+		assert.Equal(t, "42", string(body))
+	}
+
+	// Advance time for the cached response to be stale (expired).
+	advanceTime(11 * time.Second)
+
+	// Send second request. Instead of being validated, the cached response
+	// is served directly from the cache as with strict mode disabled, responses
+	// are cached without any validation with respect to the Cache-Control header.
+	{
+		resp, err := s.client.Do(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		// Check that the served response is the cached response.
+		assert.Equal(t, "HIT", resp.Header.Get(XCache))
+
+		// In strict mode, a stale response gets validated and does not contain an
+		// Age header as it is equivalent to a freshly served response from the origin.
+		// In non-strict mode, validation with respect to Cache-Control is skipped
+		// and the cached response continues to age.
+		assert.Equal(t, "11", resp.Header.Get("Age"))
+	}
+
+	// Advance time to get a fresh cached response.
+	advanceTime(1 * time.Second)
+
+	// Send third request.
+	{
+		resp, err := s.client.Do(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, "12", resp.Header.Get("Age"))
+	}
 }

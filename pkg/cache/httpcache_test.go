@@ -192,7 +192,7 @@ func TestLookupRequest(t *testing.T) {
 			req, _ := http.NewRequest(http.MethodGet, "/", nil)
 			req.Header.Add("Cache-Control", tc.reqCacheControl)
 
-			lookup := NewLookupRequest(req, tc.reqTime)
+			lookup := NewLookupRequest(req, tc.reqTime, true)
 
 			res := &http.Response{Request: req, Header: make(http.Header, 0)}
 			res.Header.Add("Cache-Control", tc.resCacheControl)
@@ -206,9 +206,26 @@ func TestLookupRequest(t *testing.T) {
 	}
 }
 
+func TestCacheModeNonStrict(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Add("Cache-Control", "")
+
+	// Make lookup request with strict mode disabled.
+	lookup := NewLookupRequest(req, currentTime(), false)
+
+	res := &http.Response{Request: req, Header: make(http.Header, 0)}
+	res.Header.Add("Cache-Control", "no-cache")
+	res.Header.Add("Date", currentTime().Format(http.TimeFormat))
+
+	result := lookup.makeResult(res, currentTime())
+
+	assert.Equal(t, EntryOk, result.Status)
+	assert.Equal(t, "0", result.Header().Get(HeaderAge))
+}
+
 func TestExpiresFallback(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/", nil)
-	lookup := NewLookupRequest(req, currentTime())
+	lookup := NewLookupRequest(req, currentTime(), true)
 
 	res := &http.Response{Request: req, Header: make(http.Header, 0)}
 	res.Header.Add(HeaderExpires, currentTime().Add(-seconds(5)).Format(http.TimeFormat))
@@ -221,7 +238,7 @@ func TestExpiresFallback(t *testing.T) {
 
 func TestExpiresFallbackButFresh(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/", nil)
-	lookup := NewLookupRequest(req, currentTime())
+	lookup := NewLookupRequest(req, currentTime(), true)
 
 	res := &http.Response{Request: req, Header: make(http.Header, 0)}
 	res.Header.Add(HeaderExpires, currentTime().Add(seconds(5)).Format(http.TimeFormat))
@@ -236,7 +253,7 @@ func TestNoCachePragmaFallback(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Add(HeaderPragma, "no-cache")
 
-	lookup := NewLookupRequest(req, currentTime())
+	lookup := NewLookupRequest(req, currentTime(), true)
 
 	res := &http.Response{Request: req, Header: make(http.Header, 0)}
 	res.Header.Add(HeaderDate, currentTime().Format(http.TimeFormat))
@@ -252,7 +269,7 @@ func TestNonNoCachePragmaFallback(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Add(HeaderPragma, "max-age=0")
 
-	lookup := NewLookupRequest(req, currentTime())
+	lookup := NewLookupRequest(req, currentTime(), true)
 
 	res := &http.Response{Request: req, Header: make(http.Header, 0)}
 	res.Header.Add(HeaderDate, currentTime().Format(http.TimeFormat))
@@ -269,7 +286,7 @@ func TestNoCachePragmaFallbackIgnored(t *testing.T) {
 	req.Header.Add(HeaderPragma, "no-cache")
 	req.Header.Add(HeaderCacheControl, "max-age=10")
 
-	lookup := NewLookupRequest(req, currentTime().Add(seconds(5)))
+	lookup := NewLookupRequest(req, currentTime().Add(seconds(5)), true)
 
 	res := &http.Response{Request: req, Header: make(http.Header, 0)}
 	res.Header.Add(HeaderDate, currentTime().Format(http.TimeFormat))
