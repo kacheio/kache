@@ -51,6 +51,12 @@ var DefaultTTL = 120 * time.Second
 
 // HttpCacheConfig holds the http cache configuration.
 type HttpCacheConfig struct {
+	// Strict specifies the cache mode. When strict mode is enabled (default), the http cache
+	// respects the directives set in the Cache-Control header. If disabled (cache mode all),
+	// the http cache ignores the Cache-Control directives and stores every response until it
+	// is expired by its TTL (time-to-live).
+	Strict bool `yaml:"strict" json:"strict"`
+
 	// XCache specifies if the XCache debug header should be attached to responses.
 	// If the response exists in the cache the header value is HIT, MISS otherwise.
 	XCache bool `yaml:"x_header" json:"x_header"`
@@ -125,7 +131,7 @@ type HttpCache struct {
 
 // NewHttpCache creates a new http cache.
 func NewHttpCache(config *HttpCacheConfig, pdr provider.Provider) (*HttpCache, error) {
-	cfg := &HttpCacheConfig{}
+	cfg := &HttpCacheConfig{Strict: true}
 	if config != nil {
 		cfg = config
 
@@ -181,6 +187,12 @@ func (c *HttpCache) UpdateConfig(config *HttpCacheConfig) {
 
 	// Safely update config.
 	c.config.Store(config)
+}
+
+// Strict returns true if the cache mode is `strict`.
+func (c *HttpCache) Strict() bool {
+	config := c.loadConfig()
+	return config.Strict
 }
 
 // IsExcludedPath checks whether a specific path is excluded from caching.
