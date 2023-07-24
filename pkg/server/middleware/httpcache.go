@@ -91,7 +91,7 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 		return t.send(req)
 	}
 
-	lookup := cache.NewLookupRequest(req, t.currentTime())
+	lookup := cache.NewLookupRequest(req, t.currentTime(), t.Cache.Strict())
 	cacheKey := lookup.Key.String()
 
 	log.Debug().Str("cache-key", cacheKey).Msg("Lookup response")
@@ -142,12 +142,12 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 		resp = cached.Response()
 	}
 
-	// set or update custom cache control header.
+	// Set or update custom cache control header.
 	updateCacheControl(resp.Header, t.Cache.DefaultCacheControl(), t.Cache.ForceCacheControl())
 
 	// Store new or update validated response.
-	if cache.IsCacheableResponse(resp) && shouldUpdateCachedEntry &&
-		!lookup.ReqCacheControl.NoStore && lookup.Request.Method != "HEAD" &&
+	if (!t.Cache.Strict() || (cache.IsCacheableResponse(resp) && shouldUpdateCachedEntry &&
+		!lookup.ReqCacheControl.NoStore)) && lookup.Request.Method != "HEAD" &&
 		!t.Cache.IsExcludedContent(resp.Header.Get("Content-Type"), resp.ContentLength) {
 		t.Cache.StoreResponse(context.Background(), lookup, resp, t.currentTime())
 	} else {
