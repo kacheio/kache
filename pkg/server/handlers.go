@@ -58,6 +58,21 @@ func (s *Server) CacheKeyPurgeHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// CacheInvalidateHandler handles the DELETE request to invalidate the provided key in the cache.
+// When running in a cluster, this does not broadcast to other kache instances.
+func (s *Server) CacheInvalidateHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+	key := r.Header.Get("X-Purge-Key")
+	if err := s.cache.Purge(context.Background(), key); err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
 // CacheFlushHandler handles the DELETE request to flush all keys from the cache.
 func (s *Server) CacheFlushHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
