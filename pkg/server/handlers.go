@@ -25,6 +25,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"path"
 
 	"net/http"
 
@@ -44,12 +45,31 @@ func (s *Server) CacheKeysHandler(w http.ResponseWriter, r *http.Request) {
 
 // CacheKeyPurgeHandler handles a PURGE request and deletes the given key from the
 // cache. The cache key is obtained from a custom request header 'X-Purge-Key'.
+// When running in a cluster a invalidation signal gets broadcasted to other instances.
 func (s *Server) CacheKeyPurgeHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "PURGE" {
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		return
 	}
+
 	// TODO: implement regex header, e.g. 'X-Purge-Regex: ^/assets/*.css'.
+	key := r.Header.Get("X-Purge-Key")
+	if err := s.cache.Purge(context.Background(), key); err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	s.broadcastPurge(r)
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// CacheInvalidateHandler handles the DELETE request to invalidate the provided key in the cache.
+// When running in a cluster, this does not broadcast to other kache instances.
+func (s *Server) CacheInvalidateHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
 	key := r.Header.Get("X-Purge-Key")
 	if err := s.cache.Purge(context.Background(), key); err != nil {
 		w.WriteHeader(http.StatusNotFound)
@@ -91,4 +111,19 @@ func (s *Server) CacheConfigUpdateHandler(w http.ResponseWriter, r *http.Request
 	}
 	s.httpcache.UpdateConfig(&c)
 	w.WriteHeader(http.StatusOK)
+}
+
+// broadcastPurge broadcasts a purge request to other nodes in the cluster.
+func (s *Server) broadcastPurge(req *http.Request) {
+	if s.cfg.Cluster == nil || !s.cfg.Provider.Layered {
+		return
+	}
+
+	// TODO: fix this prefix hack.
+	prefix := "/api"
+	if len(s.cfg.API.Prefix) > 0 {
+		prefix = s.cfg.API.Prefix
+	}
+
+	s.cluster.Broadcast(req, "api", path.Join(prefix, "/cache/invalidate"))
 }

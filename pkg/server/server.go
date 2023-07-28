@@ -34,6 +34,7 @@ import (
 	"time"
 
 	"github.com/kacheio/kache/pkg/cache"
+	"github.com/kacheio/kache/pkg/cluster"
 	"github.com/kacheio/kache/pkg/config"
 	"github.com/kacheio/kache/pkg/provider"
 	"github.com/kacheio/kache/pkg/server/middleware"
@@ -66,6 +67,9 @@ type Server struct {
 	// httpcache holds the Http cache.
 	httpcache *cache.HttpCache
 
+	// cluster holds a custer connection.
+	cluster cluster.Connection
+
 	stopCh chan bool
 }
 
@@ -91,6 +95,14 @@ func NewServer(cfg *config.Configuration, pdr provider.Provider, httpcache *cach
 		return nil, err
 	}
 	srv.listeners = listeners
+
+	if cfg.Cluster != nil {
+		cc, err := cluster.NewConnection(cfg.Cluster)
+		if err != nil {
+			return nil, err
+		}
+		srv.cluster = cc
+	}
 
 	transport := middleware.NewCoalesced(middleware.NewCachedTransport(srv.httpcache))
 
