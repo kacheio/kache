@@ -70,10 +70,10 @@ type Server struct {
 }
 
 // NewServer creates a new configured server.
-// func NewServer(cfg *config.Configuration, pdr provider.Provider) (*Server, error) {
-func NewServer(cfg *config.Configuration, httpcache *cache.HttpCache) (*Server, error) {
+func NewServer(cfg *config.Configuration, pdr provider.Provider, httpcache *cache.HttpCache) (*Server, error) {
 	srv := &Server{
 		cfg:       cfg,
+		cache:     pdr,
 		httpcache: httpcache,
 		stopCh:    make(chan bool, 1),
 	}
