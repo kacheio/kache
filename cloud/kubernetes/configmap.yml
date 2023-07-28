@@ -12,7 +12,7 @@ data:
     upstreams:
       - name: service1
         addr: "http://localhost:8000"
-        path: "/fsvc"
+        path: "/svc1"
       - name: service2
         addr: "http://example.com"
         path: "/"
@@ -22,9 +22,20 @@ data:
     logging:
       level: debug
     provider:
+      layered: true
       backend: redis
       redis:
         endpoint: "redis-master:6379"
         username:
         password:
         db:
+        max_item_size: 10000000
+        max_queue_concurrency: 56
+        max_queue_buffer_size: 24000
+      inmemory:
+        max_size:
+        max_item_size:
+    cluster:
+      discovery: kubernetes
+      namespace: default
+      service: kache-service
