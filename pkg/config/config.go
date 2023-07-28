@@ -26,6 +26,7 @@ import (
 	"errors"
 
 	"github.com/kacheio/kache/pkg/cache"
+	"github.com/kacheio/kache/pkg/cluster"
 	"github.com/kacheio/kache/pkg/provider"
 )
 
@@ -43,6 +44,8 @@ type Configuration struct {
 
 	HttpCache *cache.HttpCacheConfig          `yaml:"cache"`
 	Provider  *provider.ProviderBackendConfig `yaml:"provider"`
+
+	Cluster *cluster.Config `yaml:"cluster"`
 
 	API *API `yaml:"api"`
 	Log *Log `yaml:"logging"`
