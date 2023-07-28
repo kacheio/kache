@@ -53,7 +53,7 @@ func TestProxyNoHost(t *testing.T) {
 	}
 	p, _ := provider.NewSimpleCache(nil)
 	c, _ := cache.NewHttpCache(nil, p)
-	proxy, _ := NewServer(cfg, c)
+	proxy, _ := NewServer(cfg, p, c)
 	proxyServer := httptest.NewServer(proxy)
 	defer proxyServer.Close()
 
@@ -81,7 +81,7 @@ func TestProxySingleHost(t *testing.T) {
 	}
 	p, _ := provider.NewSimpleCache(nil)
 	c, _ := cache.NewHttpCache(nil, p)
-	proxy, _ := NewServer(cfg, c)
+	proxy, _ := NewServer(cfg, p, c)
 	proxyServer := httptest.NewServer(proxy)
 	defer proxyServer.Close()
 
@@ -123,7 +123,7 @@ func TestProxyMultiHost(t *testing.T) {
 	}
 	p, _ := provider.NewSimpleCache(nil)
 	c, _ := cache.NewHttpCache(nil, p)
-	proxy, _ := NewServer(cfg, c)
+	proxy, _ := NewServer(cfg, p, c)
 	proxyServer := httptest.NewServer(proxy)
 	defer proxyServer.Close()
 
@@ -159,7 +159,7 @@ func TestProxyMultiListener(t *testing.T) {
 	}
 	p, _ := provider.NewSimpleCache(nil)
 	c, _ := cache.NewHttpCache(nil, p)
-	proxy, _ := NewServer(cfg, c)
+	proxy, _ := NewServer(cfg, p, c)
 	proxy.Start(context.Background())
 	defer proxy.Stop()
 

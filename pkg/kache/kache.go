@@ -74,7 +74,7 @@ func (t *Kache) initAPI() (err error) {
 
 // initServer initializes the core server.
 func (t *Kache) initServer() (err error) {
-	t.Server, err = server.NewServer(t.Config, t.Cache)
+	t.Server, err = server.NewServer(t.Config, *t.Provider, t.Cache)
 	if err != nil {
 		return err
 	}
