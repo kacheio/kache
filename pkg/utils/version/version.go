@@ -30,6 +30,8 @@ import (
 	"net/http"
 	"runtime"
 	"strings"
+
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // Build information. Populated at build-time.
@@ -39,6 +41,27 @@ var (
 	Branch  = "unknown"
 	Runtime = runtime.Version()
 )
+
+// NewCollector returns a collector that exports a metric with current build information.
+func NewCollector(name string) prometheus.Collector {
+	return prometheus.NewGaugeFunc(
+		prometheus.GaugeOpts{
+			Namespace: name,
+			Name:      "build_info",
+			Help: fmt.Sprintf(
+				"Build info with current %s version, build, branch, and runtime.",
+				name,
+			),
+			ConstLabels: prometheus.Labels{
+				"version":  Version,
+				"build":    Build,
+				"branch":   Branch,
+				"platform": Runtime,
+			},
+		},
+		func() float64 { return 1 },
+	)
+}
 
 // versionTmpl is the version template.
 var versionTmpl = `

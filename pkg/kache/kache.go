@@ -35,6 +35,7 @@ import (
 	"github.com/kacheio/kache/pkg/provider"
 	"github.com/kacheio/kache/pkg/server"
 	"github.com/kacheio/kache/pkg/utils/version"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 )
 
@@ -43,6 +44,8 @@ type Kache struct {
 	Config *config.Configuration
 	loader *config.Loader
 
+	Registerer prometheus.Registerer
+
 	API      *api.API
 	Server   *server.Server
 	Cache    *cache.HttpCache
@@ -50,10 +53,11 @@ type Kache struct {
 }
 
 // New makes a new Kache.
-func New(loader *config.Loader) (*Kache, error) {
+func New(loader *config.Loader, registerer prometheus.Registerer) (*Kache, error) {
 	kache := &Kache{
 		loader: loader,
 		Config: loader.Config(),
+		Registerer: registerer,
 	}
 
 	if err := kache.setupModules(); err != nil {

@@ -32,6 +32,7 @@ import (
 	"github.com/kacheio/kache/pkg/kache"
 	"github.com/kacheio/kache/pkg/utils/logger"
 	"github.com/kacheio/kache/pkg/utils/version"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 )
 
@@ -45,6 +46,10 @@ const (
 	versionOption = "version"
 	versionUsage  = "Print application version and exit."
 )
+
+func init() {
+	prometheus.MustRegister(version.NewCollector("kache"))
+}
 
 func main() {
 	// Cleanup all flags registered via init() methods of 3rd-party libraries.
@@ -88,7 +93,7 @@ func main() {
 	log.Info().Msg("Kache is starting")
 	log.Info().Str("config", configFile).Msg("Kache initializing application")
 
-	t, err := kache.New(ldr)
+	t, err := kache.New(ldr, prometheus.DefaultRegisterer)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Initializing application")
 	}

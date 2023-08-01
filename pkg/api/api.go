@@ -73,6 +73,7 @@ func New(cfg config.API, srv *server.Server) (*API, error) {
 	})
 
 	VersionHandler{}.Append(router)
+	MetricsHandler{}.Append(router)
 
 	if cfg.Debug {
 		DebugHandler{}.Append(router)
