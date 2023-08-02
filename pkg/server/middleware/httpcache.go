@@ -30,11 +30,30 @@ import (
 	"time"
 
 	"github.com/kacheio/kache/pkg/cache"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/rs/zerolog/log"
 )
 
+type metrics struct {
+	hits, misses prometheus.Counter
+}
+
+func newMetrics(reg prometheus.Registerer) *metrics {
+	requests := promauto.With(reg).NewCounterVec(prometheus.CounterOpts{
+		Name: "kache_http_cache_requests_total",
+		Help: "Total number of http cache requests.",
+	}, []string{"result"})
+	return &metrics{
+		hits:   requests.WithLabelValues("hit"),
+		misses: requests.WithLabelValues("miss"),
+	}
+}
+
 // Transport is the http filter implementing the http caching logic.
 type Transport struct {
+	metrics *metrics
+
 	// The RoundTripper interface actually used to make requests.
 	// If nil, http.DefaultTransport is used.
 	Transport http.RoundTripper
@@ -47,7 +66,9 @@ type Transport struct {
 }
 
 // NewTransport returns a new Transport with the provided Cache implementation.
-func NewCachedTransport(c *cache.HttpCache) *Transport {
+func NewCachedTransport(c *cache.HttpCache, reg prometheus.Registerer) *Transport {
+	m := newMetrics(reg)
+
 	// Configure custom transport.
 	// TODO: make some fields configurable via config.
 	dialer := &net.Dialer{
@@ -66,7 +87,7 @@ func NewCachedTransport(c *cache.HttpCache) *Transport {
 
 	transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
-	return &Transport{Transport: transport, Cache: c, currentTime: time.Now}
+	return &Transport{Transport: transport, Cache: c, currentTime: time.Now, metrics: m}
 }
 
 // RoundTrip issues a http roundtrip and applies the http caching logic.
@@ -99,6 +120,7 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 
 	switch cached.Status {
 	case cache.EntryOk:
+		t.metrics.hits.Inc()
 		return t.handleCacheHit(cacheKey, cached)
 
 	case cache.EntryRequiresValidation:
@@ -110,6 +132,7 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 		req = t.injectValidationHeaders(lookup.Request, cached.Header())
 
 	case cache.EntryInvalid:
+		t.metrics.misses.Inc()
 		log.Debug().Str("cache-key", cacheKey).Str("x-cache", "MISS").Msg("Calling upstream")
 
 	case cache.EntryLookupError:

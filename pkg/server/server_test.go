@@ -32,6 +32,7 @@ import (
 	"github.com/kacheio/kache/pkg/cache"
 	"github.com/kacheio/kache/pkg/config"
 	"github.com/kacheio/kache/pkg/provider"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -53,7 +54,7 @@ func TestProxyNoHost(t *testing.T) {
 	}
 	p, _ := provider.NewSimpleCache(nil)
 	c, _ := cache.NewHttpCache(nil, p)
-	proxy, _ := NewServer(cfg, p, c)
+	proxy, _ := NewServer(cfg, p, c, prometheus.NewRegistry())
 	proxyServer := httptest.NewServer(proxy)
 	defer proxyServer.Close()
 
@@ -81,7 +82,7 @@ func TestProxySingleHost(t *testing.T) {
 	}
 	p, _ := provider.NewSimpleCache(nil)
 	c, _ := cache.NewHttpCache(nil, p)
-	proxy, _ := NewServer(cfg, p, c)
+	proxy, _ := NewServer(cfg, p, c, prometheus.NewRegistry())
 	proxyServer := httptest.NewServer(proxy)
 	defer proxyServer.Close()
 
@@ -123,7 +124,7 @@ func TestProxyMultiHost(t *testing.T) {
 	}
 	p, _ := provider.NewSimpleCache(nil)
 	c, _ := cache.NewHttpCache(nil, p)
-	proxy, _ := NewServer(cfg, p, c)
+	proxy, _ := NewServer(cfg, p, c, prometheus.NewRegistry())
 	proxyServer := httptest.NewServer(proxy)
 	defer proxyServer.Close()
 
@@ -159,7 +160,7 @@ func TestProxyMultiListener(t *testing.T) {
 	}
 	p, _ := provider.NewSimpleCache(nil)
 	c, _ := cache.NewHttpCache(nil, p)
-	proxy, _ := NewServer(cfg, p, c)
+	proxy, _ := NewServer(cfg, p, c, prometheus.NewRegistry())
 	proxy.Start(context.Background())
 	defer proxy.Stop()
 
