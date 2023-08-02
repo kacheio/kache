@@ -38,6 +38,7 @@ import (
 	"github.com/kacheio/kache/pkg/config"
 	"github.com/kacheio/kache/pkg/provider"
 	"github.com/kacheio/kache/pkg/server/middleware"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 )
 
@@ -74,7 +75,12 @@ type Server struct {
 }
 
 // NewServer creates a new configured server.
-func NewServer(cfg *config.Configuration, pdr provider.Provider, httpcache *cache.HttpCache) (*Server, error) {
+func NewServer(
+	cfg *config.Configuration,
+	pdr provider.Provider,
+	httpcache *cache.HttpCache,
+	reg prometheus.Registerer,
+) (*Server, error) {
 	srv := &Server{
 		cfg:       cfg,
 		cache:     pdr,
@@ -104,7 +110,9 @@ func NewServer(cfg *config.Configuration, pdr provider.Provider, httpcache *cach
 		srv.cluster = cc
 	}
 
-	transport := middleware.NewCoalesced(middleware.NewCachedTransport(srv.httpcache))
+	transport := middleware.NewCoalesced(
+		middleware.NewCachedTransport(srv.httpcache, reg),
+	)
 
 	// Create the reverse proxy.
 	proxy := &httputil.ReverseProxy{

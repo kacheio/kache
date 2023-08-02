@@ -55,8 +55,8 @@ type Kache struct {
 // New makes a new Kache.
 func New(loader *config.Loader, registerer prometheus.Registerer) (*Kache, error) {
 	kache := &Kache{
-		loader: loader,
-		Config: loader.Config(),
+		loader:     loader,
+		Config:     loader.Config(),
 		Registerer: registerer,
 	}
 
@@ -78,7 +78,7 @@ func (t *Kache) initAPI() (err error) {
 
 // initServer initializes the core server.
 func (t *Kache) initServer() (err error) {
-	t.Server, err = server.NewServer(t.Config, *t.Provider, t.Cache)
+	t.Server, err = server.NewServer(t.Config, *t.Provider, t.Cache, t.Registerer)
 	if err != nil {
 		return err
 	}

@@ -33,6 +33,7 @@ import (
 	"github.com/kacheio/kache/pkg/cache"
 	"github.com/kacheio/kache/pkg/provider"
 	"github.com/kacheio/kache/pkg/utils/clock"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -76,7 +77,7 @@ func setup(t *testing.T) {
 		XCache:     true,
 		XCacheName: XCache,
 	}, p)
-	tp := NewCachedTransport(h)
+	tp := NewCachedTransport(h, prometheus.NewRegistry())
 	tp.currentTime = currentTime
 
 	client := http.Client{Transport: tp}
