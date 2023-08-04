@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+
+scrape_configs:
+
+  - job_name: 'kache'
+    # metrics_path: '/metrics'
+    # scheme: 'http'
+    # tls_config:
+    #   insecure_skip_verify: true
+
+    static_configs:
+    - targets: ['kache:6767']
+      # labels:
+      #   cluster: 'kache-cluster'
