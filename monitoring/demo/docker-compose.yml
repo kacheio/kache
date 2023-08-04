@@ -1,0 +1,33 @@
+version: '3.9'
+services:
+  grafana:
+    image: grafana/grafana
+    volumes:
+      # Mount provisioning configuration
+      - './config/grafana/provisioning:/etc/grafana/provisioning'
+      # Mount dashboards
+      # - ''../grafana/dashboards:/var/lib/grafana/dashboards'
+    env_file:
+      - './config/grafana/config.monitoring'
+    ports: [ '3000:3000' ]
+    depends_on: [prometheus]
+  
+  prometheus:
+    image: prom/prometheus
+    volumes: [ './config/prometheus:/etc/prometheus/' ]
+    ports: [ '9090:9090' ]
+
+  kache:
+    hostname: kache
+    # image: kacheio/kache:latest
+    # build: .
+    build:
+      context: ./../../
+      dockerfile: Dockerfile
+    command: ['-config.file=/etc/kache/kache.yml']
+    ports: ['81:81', '8080:8080', '6728:6728', '6767:6767']
+    volumes: ['./config/kache/kache.yml:/etc/kache/kache.yml']
+    depends_on: [redis]
+
+  redis:
+    image: 'redis:alpine'
