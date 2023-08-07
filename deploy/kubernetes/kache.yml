@@ -15,8 +15,9 @@ spec:
     spec:
       containers:
         - name: kache
-          image: kacheio/kache:main
-          imagePullPolicy: Always
+          #image: kacheio/kache:main
+          image: kacheio/kluster
+          imagePullPolicy: Never # Always
           args:
             - "-config.file=/etc/kache/config.yml"
           env:
@@ -64,3 +65,5 @@ spec:
       targetPort: api
   selector:
     app: kache
+
+# kubectl scale deploy kache --replicas=0 steart with 1 2 3

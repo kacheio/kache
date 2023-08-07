@@ -21,25 +21,25 @@ minikube start
 Create a ConfigMap that contains a the kache configuration:
 
 ```
-kubectl create configmap kache-config --from-file=cloud/kubernetes/configmap.yml 
+kubectl create configmap kache-config --from-file=deploy/kubernetes/configmap.yml 
 ```
 
 Apply the ConfigMap:
 
 ```
-kubectl apply -f cloud/kubernetes/configmap.yml
+kubectl apply -f deploy/kubernetes/configmap.yml
 ```
 
 ### Deploy Redis
 
 ```
-kubectl apply -f cloud/kubernetes/redis-master.yml
+kubectl apply -f deploy/kubernetes/redis-master.yml
 ```
 
 ### Deploy Kache
 
 ```
-kubectl apply -f cloud/kubernetes/kache.yml
+kubectl apply -f deploy/kubernetes/kache.yml
 ````
 
 ### Accessing the service
@@ -87,10 +87,10 @@ Create a service account for kache-service:
 kubectl create serviceaccount kache-service
 ```
 
-Apply a set of minimum privileges to query endpoints ([spec](https://raw.githubusercontent.com/kacheio/kache/main/cloud/kubernetes/rbac.yml)):
+Apply a set of minimum privileges to query endpoints ([spec](https://raw.githubusercontent.com/kacheio/kache/main/deploy/kubernetes/rbac.yml)):
 
 ```
-kubectl apply -f cloud/kubernetes/rbac.yml 
+kubectl apply -f deploy/kubernetes/rbac.yml 
 ```
 
 Use `clusterrole` to create a `clusterrolebinding`:
@@ -119,10 +119,10 @@ Alternatively, use the official [Docker image](https://hub.docker.com/r/kacheio/
 docker run -it -p 80:80 -v $PWD/kache.yml:/etc/kache/kache.yml kache -config.file=/etc/kache/kache.yml 
 ````
 
-If you want to run Kache with a distributed caching backend (e.g. Redis), you can use and run this example [docker-compose](https://github.com/kacheio/kache/blob/main/cloud/docker/docker-compose.yml) as a starting point:
+If you want to run Kache with a distributed caching backend (e.g. Redis), you can use and run this example [docker-compose](https://github.com/kacheio/kache/blob/main/deploy/docker/docker-compose.yml) as a starting point:
 
 ```
-docker-compose -f cloud/docker/docker-compose.yml up 
+docker-compose -f deploy/docker/docker-compose.yml up 
 ```
 
 ## Troubleshooting
@@ -140,7 +140,7 @@ If you encounter authorization issues when running the Kubernetes cluster on Doc
 
 > *User "system:serviceaccount:default:default" cannot get endpoints in the namespace*
 
-The default service account cannot retrieve endpoints in the default namespace because it does not have access to list/get endpoints. Therefore, you need to assign this user a role with clusterrolebinding and apply the corresponding permissions ([rbac.yml](https://raw.githubusercontent.com/kacheio/kache/main/cloud/kubernetes/rbac.yml)).
+The default service account cannot retrieve endpoints in the default namespace because it does not have access to list/get endpoints. Therefore, you need to assign this user a role with clusterrolebinding and apply the corresponding permissions ([rbac.yml](https://raw.githubusercontent.com/kacheio/kache/main/deploy/kubernetes/rbac.yml)).
 
 Assign the `kache-service` clusterrole to the default serviceaccount in the default namespace:
  
