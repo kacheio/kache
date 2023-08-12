@@ -230,6 +230,10 @@ func (s *Server) Stop() {
 
 	s.listeners.Stop()
 
+	if s.cluster != nil {
+		s.cluster.Close()
+	}
+
 	s.stopCh <- true
 }
 
