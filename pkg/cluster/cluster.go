@@ -40,6 +40,7 @@ type Config struct {
 type Connection interface {
 	Endpoints(portname string) []Endpoint
 	Broadcast(req *http.Request, portname string, path string)
+	Close()
 }
 
 // NewConnection create a new cluster connection.
