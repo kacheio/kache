@@ -28,6 +28,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/rs/zerolog/log"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,23 +40,18 @@ import (
 // client is the kubernetes client.
 type client struct {
 	clientset *kubernetes.Clientset
+	broadcast *RequestQueue
 
 	namespace string
 	service   string
 }
 
-// Endpoint contains kubernetes endpoint information.
+// Endpoint contains the kubernetes endpoint information.
 type Endpoint struct {
 	Name string
 	Host string
 	Port int
 }
-
-// type Signal struct {
-// 	req *http.Request
-// 	portname string
-// 	path string
-// }
 
 // NewKubernetesClient create a new kubernetes clientset.
 func NewKubernetesClient(namespace string, service string) (Connection, error) {
@@ -75,11 +71,24 @@ func NewKubernetesClient(namespace string, service string) (Connection, error) {
 		return nil, fmt.Errorf("failed to create kubernetes client: %v", err)
 	}
 
+	q := NewRequestQueue(RequestQueueOpts{
+		Size:       30,
+		MaxWorkers: 6,
+		MaxRetries: 5,
+		Backoff:    7 * time.Second,
+	})
+
 	return &client{
 		clientset: c,
+		broadcast: q,
 		namespace: namespace,
 		service:   service,
 	}, nil
+}
+
+// Close closes the connection.
+func (c *client) Close() {
+	c.broadcast.Stop()
 }
 
 // Returns the endpoint addresses to a specific port name.
@@ -125,6 +134,7 @@ func (c *client) Broadcast(req *http.Request, portname string, path string) {
 	log.Info().Msgf("Cluster broadcast to: %v", endpoints)
 
 	for _, ep := range endpoints {
+		// Preare endpoint request.
 		url := fmt.Sprintf("%s://%s:%v%s", "http", ep.Host, ep.Port, path)
 		out, err := http.NewRequest(http.MethodDelete, url, req.Body)
 		if err != nil {
@@ -135,17 +145,7 @@ func (c *client) Broadcast(req *http.Request, portname string, path string) {
 		out.Header.Set("X-Forwarded-For", req.RemoteAddr)
 		out.Host = req.Host
 
-		// TODO: enque this in an async queue; handle error, retry.
-		client := &http.Client{}
-		resp, err := client.Do(out)
-		if err != nil {
-			log.Error().Err(err).Str("url", url).Msg("Error signaling node")
-			continue
-		}
-
-		log.Info().Msgf("%v: %v", url, resp)
+		// Dispatch message.
+		c.broadcast.Queue <- Message{out, 0}
 	}
 }
-
-// use asynch queue
-// b.signalQueue <- Signal{request, 0}
