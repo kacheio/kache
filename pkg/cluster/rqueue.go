@@ -98,13 +98,13 @@ func (q *RequestQueue) process() {
 			if err != nil {
 				log.Error().Err(err).
 					Str("url", msg.Request.RequestURI).
-					Msg("Error signaling node")
+					Msg("Error request")
 				q.retry(msg)
 			}
 			if resp.StatusCode >= 400 && resp.StatusCode <= 599 {
 				log.Error().Err(err).
 					Str("url", resp.Request.RequestURI).Int("status", resp.StatusCode).
-					Msg("Error signaling node")
+					Msg("Error response")
 				q.retry(msg)
 			}
 			if resp != nil {
