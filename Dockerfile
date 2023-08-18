@@ -1,4 +1,4 @@
-FROM golang:1.20-alpine AS builder
+FROM golang:1.21-alpine AS builder
 
 # override with: --build-args VERSION=1.0.0
 ARG VERSION=dev
