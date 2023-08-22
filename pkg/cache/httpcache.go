@@ -78,6 +78,9 @@ type HttpCacheConfig struct {
 
 	// Exclude contains the cache exclude configuration.
 	Exclude *Exclude `yaml:"exclude" json:"exclude"`
+
+	// VaryAllowList contains the allowed vary values.
+	VaryAllowList []string `yaml:"vary"`
 }
 
 // Timeout holds the custom TTL configuration
@@ -127,6 +130,9 @@ type HttpCache struct {
 
 	// cache holds the inner caching provider.
 	cache provider.Provider
+
+	// varyAllowList contains the allowed vary values.
+	varyAllowList varyAllowList
 }
 
 // NewHttpCache creates a new http cache.
@@ -137,7 +143,8 @@ func NewHttpCache(config *HttpCacheConfig, pdr provider.Provider) (*HttpCache, e
 
 	}
 	c := &HttpCache{
-		cache: pdr,
+		cache:         pdr,
+		varyAllowList: make(varyAllowList),
 	}
 	c.UpdateConfig(cfg)
 	return c, nil
@@ -183,6 +190,12 @@ func (c *HttpCache) UpdateConfig(config *HttpCacheConfig) {
 			}
 			config.Exclude.Content[i].TypeMatcher = r
 		}
+	}
+
+	// Populate the vary allow list.
+	clear(c.varyAllowList)
+	for _, item := range config.VaryAllowList {
+		c.varyAllowList[strings.ToLower(item)] = struct{}{}
 	}
 
 	// Safely update config.
