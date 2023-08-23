@@ -97,24 +97,25 @@ func (q *RequestQueue) process() {
 			resp, err := client.Do(msg.Request)
 			if err != nil {
 				log.Error().Err(err).
-					Str("url", msg.Request.RequestURI).
+					Str("url", msg.Request.URL.String()).
 					Msg("Error request")
 				q.retry(msg)
 			}
 			if resp.StatusCode >= 400 && resp.StatusCode <= 599 {
 				log.Error().Err(err).
-					Str("url", resp.Request.RequestURI).Int("status", resp.StatusCode).
+					Str("url", msg.Request.URL.String()).
+					Int("status", resp.StatusCode).
 					Msg("Error response")
 				q.retry(msg)
 			}
 			if resp != nil {
-				// discard and close body to reuse connection.
+				log.Debug().Str("url", msg.Request.URL.String()).Int("status", resp.StatusCode).
+					Msg("Message sent")
+
+				// Discard and close body to reuse connection.
 				_, _ = io.Copy(io.Discard, resp.Body)
 				_ = resp.Body.Close()
 			}
-			log.Debug().Str("url", resp.Request.RequestURI).Int("status", resp.StatusCode).
-				Msg("Message sent")
-
 		case <-q.done:
 			return
 		}
