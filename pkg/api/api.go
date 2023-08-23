@@ -110,7 +110,8 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	a.router.ServeHTTP(w, r)
 }
 
-// RegisterRoute registers a new handler at the given path.
+// RegisterRoute registers a new handler at the specified path.
+// The path is prefixed with the configured API path prefix.
 func (a *API) RegisterRoute(method string, p string, handler http.HandlerFunc) {
 	a.router.HandleFunc(path.Join(a.prefix, p), handler).Methods(method)
 }
