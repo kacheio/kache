@@ -128,22 +128,22 @@ func (a *API) createRoutes() {
 
 	// Render the current cache config.
 	a.router.Methods(http.MethodGet).
-		PathPrefix(path.Join(a.prefix, "/cache/config")).
+		Path(path.Join(a.prefix, "/cache/config")).
 		HandlerFunc(a.server.CacheConfigHandler)
 
 	// Update the current cache config.
 	a.router.Methods(http.MethodPut).
-		PathPrefix(path.Join(a.prefix, "/cache/config/update")).
+		Path(path.Join(a.prefix, "/cache/config/update")).
 		HandlerFunc(a.server.CacheConfigUpdateHandler)
 
 	// Invalidates a key in the cache.
 	a.router.Methods(http.MethodDelete).
-		PathPrefix(path.Join(a.prefix, "/cache/invalidate")).
+		Path(path.Join(a.prefix, "/cache/invalidate")).
 		HandlerFunc(a.server.CacheInvalidateHandler)
 
 	// Flush all keys from the cache.
 	a.router.Methods(http.MethodDelete).
-		PathPrefix(path.Join(a.prefix, "/cache/flush")).
+		Path(path.Join(a.prefix, "/cache/flush")).
 		HandlerFunc(a.server.CacheFlushHandler)
 }
 
