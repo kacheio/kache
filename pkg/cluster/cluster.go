@@ -39,7 +39,7 @@ type Config struct {
 // Connection is the cluster connection interface.
 type Connection interface {
 	Endpoints(portname string) []Endpoint
-	Broadcast(req *http.Request, portname string, path string)
+	Broadcast(req *http.Request, portname, method, path string)
 	Close()
 }
 

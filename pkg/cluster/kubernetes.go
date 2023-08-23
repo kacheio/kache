@@ -23,8 +23,10 @@
 package cluster
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -128,21 +130,28 @@ func (c *client) Endpoints(portname string) []Endpoint {
 	return endpoints
 }
 
-// Broadcast broadcast a request to endpoints.
-func (c *client) Broadcast(req *http.Request, portname string, path string) {
+// Broadcast broadcasts the given request to cluster endpoints specified by portname.
+func (c *client) Broadcast(req *http.Request, portname, method, path string) {
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		log.Error().Err(err).Msg("Error reading body")
+		return
+	}
+
 	endpoints := c.Endpoints(portname)
-	log.Info().Msgf("Cluster broadcast to: %v", endpoints)
+	log.Debug().Msgf("Cluster broadcast to: %v", endpoints)
 
 	for _, ep := range endpoints {
 		// Preare endpoint request.
 		url := fmt.Sprintf("%s://%s:%v%s", "http", ep.Host, ep.Port, path)
-		out, err := http.NewRequest(http.MethodDelete, url, req.Body)
+		out, err := http.NewRequest(method, url, io.NopCloser(bytes.NewBuffer(body)))
 		if err != nil {
 			log.Error().Err(err).Send()
 			continue
 		}
 		out.Header = req.Header.Clone()
 		out.Header.Set("X-Forwarded-For", req.RemoteAddr)
+		out.Header.Set("X-Kache-Cluster", "Broadcast")
 		out.Host = req.Host
 
 		// Dispatch message.

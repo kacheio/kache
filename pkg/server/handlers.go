@@ -23,13 +23,15 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"io"
+	"net/http"
 	"path"
 
-	"net/http"
-
 	"github.com/kacheio/kache/pkg/cache"
+	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v3"
 )
 
@@ -101,21 +103,35 @@ func (s *Server) CacheConfigHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// CacheConfigHandler renders the current cache config.
+// CacheConfigUpdateHandler updates the current cache config.
 func (s *Server) CacheConfigUpdateHandler(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Error().Err(err).Msg("Error reading body")
+		http.Error(w, "unable to read body", http.StatusBadRequest)
+		return
+	}
+
 	var c cache.HttpCacheConfig
-	dec := yaml.NewDecoder(r.Body)
+	dec := yaml.NewDecoder(bytes.NewReader(body))
 	if err := dec.Decode(&c); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	s.httpcache.UpdateConfig(&c)
+
+	if _, ok := r.Header["X-Kache-Cluster"]; !ok && s.cluster != nil {
+		// Broadcast only if the request is not already a broadcast.
+		r.Body = io.NopCloser(bytes.NewBuffer(body))
+		s.cluster.Broadcast(r, "api", r.Method, r.URL.Path)
+	}
+
 	w.WriteHeader(http.StatusOK)
 }
 
 // broadcastPurge broadcasts a purge request to other nodes in the cluster.
 func (s *Server) broadcastPurge(req *http.Request) {
-	if s.cfg.Cluster == nil || !s.cfg.Provider.Layered {
+	if s.cluster == nil || !s.cfg.Provider.Layered {
 		return
 	}
 
@@ -125,5 +141,5 @@ func (s *Server) broadcastPurge(req *http.Request) {
 		prefix = s.cfg.API.Prefix
 	}
 
-	s.cluster.Broadcast(req, "api", path.Join(prefix, "/cache/invalidate"))
+	s.cluster.Broadcast(req, "api", http.MethodDelete, path.Join(prefix, "/cache/invalidate"))
 }
