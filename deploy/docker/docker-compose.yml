@@ -7,7 +7,7 @@ services:
       - "-config.file=/etc/kache/kache.sample.yml"
     ports:
       - "80:80"
-      - "3129:3129"
+      - "3128:3128"
       - "6067:6067"
     volumes:
       - "./../kache.sample.yml:/etc/kache/kache.sample.yml"
