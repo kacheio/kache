@@ -1,7 +1,9 @@
+## kache.yml
 ## Sample configuration for Kache.
-## https://kacheio.github.io/docs/reference/
+## https://kacheio.github.io/docs/reference
 
 ## Listener configuration.
+## https://kacheio.github.io/docs/reference/listeners
 listeners:
   web1:
     addr: :80
@@ -9,6 +11,7 @@ listeners:
     addr: :3128
 
 ## Upstream configuration.
+## https://kacheio.github.io/docs/reference/targets
 upstreams:
   - name: service1
     addr: "http://localhost:8000"
@@ -19,6 +22,7 @@ upstreams:
     path: "/"
 
 ## API configuration.
+## https://kacheio.github.io/docs/reference/api
 api:
   # API port.
   port: 6067
@@ -34,6 +38,7 @@ api:
   # acl: "127.0.0.1, 10.22.0.0"
 
 ## Loggging configuration.
+## https://kacheio.github.io/docs/reference/logging
 logging:
   # Set level to debug. Supported log levels: trace, debug, info, warn, error, fatal, panic.
   level: debug
@@ -48,6 +53,7 @@ logging:
   # max_age:     28 # days
 
 ## Cache configuration.
+## https://kacheio.github.io/docs/reference/cache
 cache:
   # Activate debug header.
   x_header: true
@@ -91,6 +97,7 @@ cache:
   #       size: 1000000 # in bytes
 
 ## Cache provider configuration
+## https://kacheio.github.io/docs/reference/provider
 provider:
   # Activate redis as the central remote cache provider.
   # To run kache in a very simple version and w/o a remote cache,
@@ -122,6 +129,7 @@ provider:
     default_ttl: 120s
 
 ## Cluster configuration.
+## https://kacheio.github.io/docs/reference/cluster
 # cluster:
 #   # Cluster provider (kubernetes).
 #   discovery: kubernetes
