@@ -15,9 +15,11 @@ spec:
     spec:
       containers:
         - name: kache
-          #image: kacheio/kache:main
-          image: kacheio/kluster
-          imagePullPolicy: Never # Always
+          # use 'latest' for lastest release, or 'main' for live at head.
+          image: kacheio/kache:latest
+          imagePullPolicy: Always
+          # image: kacheio/kluster
+          # imagePullPolicy: Never
           args:
             - "-config.file=/etc/kache/config.yml"
           env:
@@ -29,11 +31,11 @@ spec:
             - name: config
               mountPath: /etc/kache
           ports:
-            - containerPort: 8080
+            - containerPort: 80
               name: http
-            - containerPort: 1337
+            - containerPort: 3128
               name: web
-            - containerPort: 1338
+            - containerPort: 6067
               name: api
           resources:
             requests:
@@ -58,12 +60,12 @@ spec:
       port: 80
       targetPort: http
     - name: "web"
-      port: 1337
+      port: 3128
       targetPort: web
     - name: "api"
-      port: 1338
+      port: 6067
       targetPort: api
   selector:
     app: kache
-
-# kubectl scale deploy kache --replicas=0 steart with 1 2 3
+# Start/Restart pods:
+# kubectl scale deploy kache --replicas=[0|n]

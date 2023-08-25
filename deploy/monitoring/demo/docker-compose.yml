@@ -25,7 +25,7 @@ services:
       context: ./../../
       dockerfile: Dockerfile
     command: ['-config.file=/etc/kache/kache.yml']
-    ports: ['81:81', '8080:8080', '6728:6728', '6767:6767']
+    ports: ['8080:8080', '3128:3128', '6067:6067']
     volumes: ['./config/kache/kache.yml:/etc/kache/kache.yml']
     depends_on: [redis]
 

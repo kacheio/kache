@@ -1,15 +1,14 @@
 services:
 
   kache:
-    image: kacheio/kache:main
+    image: kacheio/kache:latest
     container_name: kache
     command:
       - "-config.file=/etc/kache/kache.sample.yml"
     ports:
       - "80:80"
-      - "8080:8080"
-      - "1337:1337"
-      - "1338:1338"
+      - "3128:3128"
+      - "6067:6067"
     volumes:
       - "./../kache.sample.yml:/etc/kache/kache.sample.yml"
 

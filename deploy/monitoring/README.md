@@ -15,7 +15,7 @@ The output of `docker ps` should look like the following:
 
 ```bash
 CONTAINER ID   IMAGE              COMMAND                  CREATED              STATUS             PORTS                                                                NAMES
-adbd29616919   demo-kache         "./kache -config.fil…"   12 minutes ago       Up 4 minutes       0.0.0.0:80->80/tcp, 0.0.0.0:6728->6728/tcp, 0.0.0.0:6767->6767/tcp   demo-kache-1
+adbd29616919   demo-kache         "./kache -config.fil…"   12 minutes ago       Up 4 minutes       0.0.0.0:80->80/tcp, 0.0.0.0:3128->3128/tcp, 0.0.0.0:6067->6067/tcp   demo-kache-1
 9b32853b525b   redis:alpine       "docker-entrypoint.s…"   12 minutes ago       Up 4 minutes       0.0.0.0:6379->6379/tcp                                               demo-redis-1
 10959c342b87   grafana/grafana    "/run.sh"                12 minutes ago       Up 4 minutes       0.0.0.0:3000->3000/tcp                                               demo-grafana-1
 5d63219f1148   prom/prometheus    "/bin/prometheus --c…"   12 minutes ago       Up 4 minutes       0.0.0.0:9090->9090/tcp                                               demo-prometheus-1
@@ -23,8 +23,8 @@ adbd29616919   demo-kache         "./kache -config.fil…"   12 minutes ago     
 
 When each container is up and running, the services can be accessed via:
 
-- `localhost:8080`: kache listener
-- `localhost:6767`: kache api
+- `localhost:3128`: kache listener (and on :80)
+- `localhost:6067`: kache api
 - `localhost:9090`: prometheus web ui
 - `localhost:3000`: grafana (dashboards located at `/dashboards`)
 
