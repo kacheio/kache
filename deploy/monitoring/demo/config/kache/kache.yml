@@ -2,14 +2,14 @@ listeners:
   web1:
     addr: :80
   web2:
-    addr: :6728
+    addr: :3129
 
 upstreams:
   - name: service1
     addr: "http://localhost:8000"
 
 api:
-  port: 6767
+  port: 6067
   debug: true
 
 logging:
@@ -20,10 +20,10 @@ cache:
   default_ttl: 120s
 
 provider:
-  layered: true 
-  backend: redis 
+  layered: true
+  backend: redis
   redis:
-    endpoint: "redis:6379" 
+    endpoint: "redis:6379"
     max_item_size: 10000000
     max_queue_concurrency: 56
     max_queue_buffer_size: 24000

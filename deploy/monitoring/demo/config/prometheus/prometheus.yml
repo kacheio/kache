@@ -11,6 +11,6 @@ scrape_configs:
     #   insecure_skip_verify: true
 
     static_configs:
-    - targets: ['kache:6767']
+    - targets: ['kache:6067']
       # labels:
       #   cluster: 'kache-cluster'

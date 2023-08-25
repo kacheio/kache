@@ -60,7 +60,7 @@ The Kache service is exposed as a LoadBalancer via the service with mapped ports
 $ kubectl get svc
 
 NAME            TYPE           CLUSTER-IP     EXTERNAL-IP   PORT(S)                                      AGE
-kache-service   LoadBalancer   10.110.92.73   localhost     80:30135/TCP,1337:32284/TCP,1338:30691/TCP   44h
+kache-service   LoadBalancer   10.110.92.73   localhost     80:30135/TCP,3129:32284/TCP,6067:30691/TCP   44h
 kubernetes      ClusterIP      10.96.0.1      <none>        443/TCP                                      44h
 redis-master    ClusterIP      10.97.188.34   <none>        6379/TCP                                     44h
 ```
@@ -68,13 +68,13 @@ redis-master    ClusterIP      10.97.188.34   <none>        6379/TCP            
 Use the above endpoints to access the service:
 
 ```
-curl http://localhost:1337/
+curl http://localhost:3129/
 ```
 
 Access the API:
 
 ```
-curl http://localhost:1337/api/v1/
+curl http://localhost:6067/api/
 ```
 
 ### Configure RBAC roles [opional]
@@ -149,3 +149,7 @@ kubectl create clusterrolebinding kache-service \
   --clusterrole=kache-service  \
   --serviceaccount=default:default
 ```
+
+### Ports
+
+By default, Kache listens for connections on port 3129 (the sample configurations also listen on port 80) and the API is available on 6067. If you are running Kache in a production system as a reverse proxy cache in front of your web server or application, you probably want to change this and listen only on the default HTTP port, port 80. If you want to include Kache in a proxy chain, for example, between an edge proxy (e.g., envoy, nginx, traeffik, etc.) and your application, you will probably want to change the listener configuration to listen on a port other than 80 and use the default port 3129 or specify another port that does not conflict with other existing services.
