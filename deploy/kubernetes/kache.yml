@@ -15,9 +15,10 @@ spec:
     spec:
       containers:
         - name: kache
-          # use 'latest' for lastest release, or 'main' for live at head.
+          # Use 'latest' for latest release, or 'main' for live at head.
           image: kacheio/kache:latest
           imagePullPolicy: Always
+          # Uncomment to use local image (mainly used for testing):
           # image: kacheio/kluster
           # imagePullPolicy: Never
           args:
@@ -67,5 +68,6 @@ spec:
       targetPort: api
   selector:
     app: kache
+    
 # Start/Restart pods:
 # kubectl scale deploy kache --replicas=[0|n]
