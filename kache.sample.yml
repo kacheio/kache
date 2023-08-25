@@ -1,83 +1,131 @@
-## Sample configuration fo kache.
+## Sample configuration for Kache.
+## https://kacheio.github.io/docs/reference/
 
-## Global configuration
-## TODO
-
-## Listeners configuration
+## Listener configuration.
 listeners:
   web1:
     addr: :80
   web2:
-    addr: :3129
+    addr: :3128
 
-## Upstream configuration
+## Upstream configuration.
 upstreams:
   - name: service1
     addr: "http://localhost:8000"
-    path: "/fsvc"
+    path: "/service1"
 
-  - name: service2
+  - name: service
     addr: "http://example.com"
     path: "/"
 
-## API configuration
-api: # admin api
+## API configuration.
+api:
+  # API port.
   port: 6067
-  debug: true
-  # prefix:
 
-## Loggging configuration
+  # Activate debug endpoints.
+  debug: true
+
+  # Customize path prefix, default is '/api'.
+  # prefix: "/api"
+
+  # Access control list. If empty or not specified at all,
+  # any request is allowed to access API resources and objects.
+  # acl: "127.0.0.1, 10.22.0.0"
+
+## Loggging configuration.
 logging:
+  # Set level to debug. Supported log levels: trace, debug, info, warn, error, fatal, panic.
   level: debug
   # color: true
-  # file: logs/log
 
-## Cache configuration
+  # Activate file-based logging.
+  # file: /var/log/kache/kache.log
+
+  # # Configure file-based logging.
+  # max_size:    500 # 500 megabytes
+  # max_backups: 3
+  # max_age:     28 # days
+
+## Cache configuration.
 cache:
+  # Activate debug header.
   x_header: true
+
+  # Set debug header name to 'X-Kache'.
   x_header_name: x-kache
 
-  default_cache_control: "max-age=120s"
-  force_cache_control: false
+  # Disable strict cache mode. Default is strict: true.
+  # strict: false
 
-  default_ttl: 1200s
-  timeouts:
-    - path: "news"
-      ttl: "10s"
-    - path: "/archive"
-      ttl: "86400s"
-    - path: "^/assets/([a-z0-9].*).css"
-      ttl: "120s"
+  # Set default cache-control header if missing or enforced to update.
+  # default_cache_control: "max-age=120"
 
-  exclude:
-    path: # applied to request
-      - "^/admin"
-      - "^/.well-known/acme-challenge/(.*)"
-    header: # applied to requests
-      x_requested_with: "XMLHttpRequest"
-    content: # applied to responses
-      - type: "application/javascript|text/css|image/.*"
-        size: 10000 # max size in bytes
+  # Always set the specified default cache-control regardless if present or not.
+  # force_cache_control: true
+
+  # Default TTL in seconds.
+  # default_ttl: 1200s
+
+  # Custom TTLs per path/resouce.
+  # timeouts:
+  #   - path: "/news"
+  #     ttl: "10s"
+  #   - path: "/archive"
+  #     ttl: "86400s"
+  #   - path: "^/assets/([a-z0-9].*).css"
+  #     ttl: "120s"
+
+  # Exclude resources from cache.
+  # exclude:
+  #   # Exclude all requests matching the specified path (regex).
+  #   path:
+  #     - "^/admin"
+  #     - "^/.well-known/acme-challenge/(.*)"
+  #   # Exclude all request with a specific header field and value.
+  #   header:
+  #     x_requested_with: "XMLHttpRequest"
+  #   # Don't cache responses depending on their type and size.
+  #   content: # applied to responses
+  #     - type: "text/javascript|text/css|image/.*"
+  #       size: 1000000 # in bytes
 
 ## Cache provider configuration
 provider:
-  # activate specified provider backend
+  # Activate redis as the central remote cache provider.
+  # To run kache in a very simple version and w/o a remote cache,
+  # set 'inmemory' instead of 'redis' as the backend and comment
+  # or remove the 'redis' configuration below.
   backend: redis
-  layered: false # experimental
 
-  # redis client configuration
+  # Enable the layered caching strategy (this puts a local in-memory
+  # cache in front of the remote cache).
+  layered: true
+
+  # Remote Redis cache configuration (layer 2).
   redis:
     endpoint: "localhost:6379"
     username:
     password:
     db:
-    max_item_size:
-    max_queue_buffer_size:
-    max_queue_concurrency:
+    max_item_size: 10000000
+    max_queue_concurrency: 56
+    max_queue_buffer_size: 24000
 
-  # in-memory cache configuration
+  # Local in-memory cache configuration (layer 1).
   inmemory:
-    max_size:
-    max_item_size:
-## Cluster configuration
-## TODO
+    # Overall cache size of 1GB.
+    max_size: 1000000000
+    # Max item size of 50MB.
+    max_item_size: 50000000
+    # Items expire after 120s.
+    default_ttl: 120s
+
+## Cluster configuration.
+# cluster:
+#   # Cluster provider (kubernetes).
+#   discovery: kubernetes
+#   # Kubernetes namespace where the cluster is running.
+#   namespace: default
+#   # Service name as specified in the service configuration.
+#   service: kache-service
