@@ -142,7 +142,7 @@ func (c *client) Broadcast(req *http.Request, portname, method, path string) {
 	log.Debug().Msgf("Cluster broadcast to: %v", endpoints)
 
 	for _, ep := range endpoints {
-		// Preare endpoint request.
+		// Prepare endpoint request.
 		url := fmt.Sprintf("%s://%s:%v%s", "http", ep.Host, ep.Port, path)
 		out, err := http.NewRequest(method, url, io.NopCloser(bytes.NewBuffer(body)))
 		if err != nil {

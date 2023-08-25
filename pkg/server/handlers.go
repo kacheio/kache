@@ -104,6 +104,7 @@ func (s *Server) CacheConfigHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // CacheConfigUpdateHandler updates the current cache config.
+// When running in a cluster the config update gets broadcasted to other instances.
 func (s *Server) CacheConfigUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
