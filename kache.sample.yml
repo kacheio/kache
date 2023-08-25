@@ -8,7 +8,7 @@ listeners:
   web1:
     addr: :80
   web2:
-    addr: :1337
+    addr: :3129
 
 ## Upstream configuration
 upstreams:
@@ -22,7 +22,7 @@ upstreams:
 
 ## API configuration
 api: # admin api
-  port: 1338
+  port: 6067
   debug: true
   # prefix:
 
