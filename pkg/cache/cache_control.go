@@ -232,7 +232,7 @@ func parseHttpTime(s string) time.Time {
 func CalculateAge(headers *http.Header, responseTime time.Time, now time.Time) time.Duration {
 	// Calculate apparent age.
 	date := parseHttpTime(headers.Get(HeaderDate))
-	apparentAge := Max(0, int64(responseTime.Sub(date)))
+	apparentAge := max(0, int64(responseTime.Sub(date)))
 
 	// Set corrected age to the value Age header,
 	// as response delay (response_time - request_time) is assumed to be negligible.
@@ -241,7 +241,7 @@ func CalculateAge(headers *http.Header, responseTime time.Time, now time.Time) t
 		age = time.Duration(0 * time.Second)
 	}
 	correctedAge := age
-	correctedInitialAge := Max(int64(apparentAge), int64(correctedAge))
+	correctedInitialAge := max(int64(apparentAge), int64(correctedAge))
 
 	// Calculate current age by adding the amount of time (seconds)
 	// since the response was last validated by the origin server.
@@ -249,12 +249,4 @@ func CalculateAge(headers *http.Header, responseTime time.Time, now time.Time) t
 	currentAge := correctedInitialAge + int64(residentTime)
 
 	return time.Duration(currentAge).Truncate(time.Second)
-}
-
-// Max returns the max of the given values.
-func Max(x, y int64) int64 {
-	if x < y {
-		return y
-	}
-	return x
 }
