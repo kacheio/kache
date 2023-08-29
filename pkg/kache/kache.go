@@ -195,7 +195,7 @@ func (t *Kache) Run() error {
 	}()
 
 	// Reload config via API.
-	t.API.RegisterRoute(http.MethodGet, "/cache/config/reload",
+	t.API.RegisterRoute(http.MethodPost, "/cache/config/reload",
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if err := t.reloadConfig(r.Context()); err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
