@@ -136,11 +136,6 @@ func (s *Server) broadcastPurge(req *http.Request) {
 		return
 	}
 
-	// TODO: fix this prefix hack.
-	prefix := "/api"
-	if len(s.cfg.API.Prefix) > 0 {
-		prefix = s.cfg.API.Prefix
-	}
-
-	s.cluster.Broadcast(req, "api", http.MethodDelete, path.Join(prefix, "/cache/invalidate"))
+	s.cluster.Broadcast(req, "api", http.MethodDelete,
+		path.Join(s.cfg.API.GetPrefix(), "/cache/invalidate"))
 }

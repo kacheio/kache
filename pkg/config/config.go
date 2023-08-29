@@ -107,6 +107,16 @@ type API struct {
 	Debug  bool   `yaml:"debug,omitempty"`
 }
 
+// GetPrefix returns the API prefix as specified
+// in the configuration. Default prefix is 'api'.
+func (a *API) GetPrefix() string {
+	prefix := "/api"
+	if len(a.Prefix) > 0 {
+		prefix = a.Prefix
+	}
+	return prefix
+}
+
 // Log holds the logger configuration.
 type Log struct {
 	Level  string `yaml:"level,omitempty"`
