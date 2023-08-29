@@ -24,6 +24,7 @@ package kache
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -192,6 +193,18 @@ func (t *Kache) Run() error {
 			}
 		}
 	}()
+
+	// Reload config via API.
+	t.API.RegisterRoute(http.MethodPost, "/cache/config/reload",
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if err := t.reloadConfig(r.Context()); err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			// TODO: broadcast this.
+			w.WriteHeader(http.StatusOK)
+		}),
+	)
 
 	// Start API server
 	go func() {
