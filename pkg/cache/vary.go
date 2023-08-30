@@ -32,7 +32,7 @@ const (
 	headerVary = "Vary"
 
 	// varySeparator marks the beginning of the vary key.
-	varySeparator = "<varied>\n"
+	varySeparator = "<vry>\n"
 
 	// headerSeparator separates the values of different headers.
 	headerSeparator = "\n"
@@ -75,8 +75,9 @@ func (l varyAllowList) allowsValue(val string) bool {
 // varied headers from the response. Returns an empty identifier if no valid
 // vary key can be created and the response should not be cached (e.g. if
 // invalid and not-allowed vary headers are present in the response).
-func createVaryIdentifier(allowed varyAllowList, varyHeaderValues []string, requestHeader http.Header) (string, bool) {
+func createVaryIdentifier(allowed varyAllowList, responseHeader, requestHeader http.Header) (string, bool) {
 	varyIdent := varySeparator
+	varyHeaderValues := varyValues(responseHeader)
 
 	if len(varyHeaderValues) == 0 {
 		return varyIdent, true

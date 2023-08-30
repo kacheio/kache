@@ -157,3 +157,156 @@ func TestParseCommaDelimitedHeader(t *testing.T) {
 		})
 	}
 }
+
+func TestCreateVaryIdentifier(t *testing.T) {
+	cases := []struct {
+		name    string
+		reqHdr  *http.Header
+		resHdr  *http.Header
+		allowed varyAllowList
+		want    string
+	}{
+		{
+			"Empty response vary",
+			headers(headerMap{"accept": "images/*"}),
+			headers(headerMap{}),
+			map[string]struct{}{
+				"accept": {}, "accept-language": {}, "width": {},
+			},
+			"<vry>\n",
+		},
+		{
+			"Single request vary",
+			headers(headerMap{"accept": "images/*"}),
+			headers(headerMap{"Vary": "accept"}),
+			map[string]struct{}{
+				"accept": {}, "accept-language": {}, "width": {},
+			},
+			"<vry>\naccept\rimages/*\n",
+		},
+		{
+			"No request vary",
+			headers(headerMap{}),
+			headers(headerMap{"Vary": "accept"}),
+			map[string]struct{}{
+				"accept": {}, "accept-language": {}, "width": {},
+			},
+			"<vry>\naccept\r\n",
+		},
+		{
+			"Multi request vary",
+			headers(headerMap{"accept": "images/*", "accept-language": "en-us", "width": "640"}),
+			headers(headerMap{"Vary": "accept, accept-language, width"}),
+			map[string]struct{}{
+				"accept": {}, "accept-language": {}, "width": {},
+			},
+			"<vry>\naccept\rimages/*\naccept-language\ren-us\nwidth\r640\n",
+		},
+		{
+			"Multi request vary XXX",
+			headers(headerMap{"accept": "images/*", "width": "640"}),
+			headers(headerMap{"Vary": "accept, accept-language, width"}),
+			map[string]struct{}{
+				"accept": {}, "accept-language": {}, "width": {},
+			},
+			"<vry>\naccept\rimages/*\naccept-language\r\nwidth\r640\n",
+		},
+		{
+			"Multi request vary with additional one",
+			headers(headerMap{"accept": "images/*", "width": "640", "height": "1280"}),
+			headers(headerMap{"Vary": "accept, width"}),
+			map[string]struct{}{
+				"accept": {}, "accept-language": {}, "width": {},
+			},
+			"<vry>\naccept\rimages/*\nwidth\r640\n",
+		},
+		{
+			"Multi request vary with additional one",
+			headers(headerMap{"accept": "images/*", "width": "640", "height": "1280"}),
+			headers(headerMap{"Vary": "accept, width"}),
+			map[string]struct{}{
+				"accept": {}, "accept-language": {}, "width": {},
+			},
+			"<vry>\naccept\rimages/*\nwidth\r640\n",
+		},
+		{
+			"Multi request vary with same header and different value",
+			&http.Header{"Width": []string{"640", "1280"}},
+			headers(headerMap{"Vary": "width"}),
+			map[string]struct{}{
+				"accept": {}, "accept-language": {}, "width": {},
+			},
+			"<vry>\nwidth\r640\r1280\n",
+		},
+		{
+			"Not allowed",
+			headers(headerMap{"width": "640"}),
+			headers(headerMap{"Vary": "not-allowed"}),
+			map[string]struct{}{
+				"accept": {}, "accept-language": {}, "width": {},
+			},
+			"",
+		},
+		{
+			"Not allowed (list)",
+			headers(headerMap{"width": "640"}),
+			headers(headerMap{"Vary": "width"}),
+			map[string]struct{}{
+				"accept": {}, "accept-language": {},
+			},
+			"",
+		},
+		{
+			"Not allowed and allowd",
+			headers(headerMap{"width": "640"}),
+			headers(headerMap{"Vary": "not-allowed, width"}),
+			map[string]struct{}{
+				"accept": {}, "accept-language": {}, "width": {},
+			},
+			"",
+		},
+		{
+			"Not allowed (list) and allowed",
+			headers(headerMap{"accept-language": "en-us", "width": "640"}),
+			headers(headerMap{"Vary": "accept-language, width"}),
+			map[string]struct{}{
+				"accept": {}, "accept-language": {},
+			},
+			"",
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			ident, _ := createVaryIdentifier(c.allowed, *c.resHdr, *c.reqHdr)
+			assert.Equal(t, c.want, ident)
+		})
+	}
+
+	// Identical, but out-of-order allow lists should create equal identifiers.
+	{
+		reqHeader := headers(headerMap{"accept-language": "en-us", "width": "640"})
+		respHeader := headers(headerMap{"Vary": "accept-language, width"})
+		allowed1 := map[string]struct{}{
+			"accept": {}, "accept-language": {}, "width": {},
+		}
+		allowed2 := map[string]struct{}{
+			"width": {}, "accept-language": {}, "accept": {},
+		}
+		ident1, _ := createVaryIdentifier(allowed1, *respHeader, *reqHeader)
+		ident2, _ := createVaryIdentifier(allowed2, *respHeader, *reqHeader)
+		assert.Equal(t, ident1, ident2)
+	}
+
+	// Requests with different header but same value, should create non-equal identifiers.
+	{
+		reqHeader1 := headers(headerMap{"accept-language": "en-us"})
+		reqHeader2 := headers(headerMap{"accept": "en-us"})
+		respHeader := headers(headerMap{"Vary": "accept-language, width"})
+		allowed := map[string]struct{}{
+			"accept": {}, "accept-language": {}, "width": {},
+		}
+		ident1, _ := createVaryIdentifier(allowed, *respHeader, *reqHeader1)
+		ident2, _ := createVaryIdentifier(allowed, *respHeader, *reqHeader2)
+		assert.NotEqual(t, ident1, ident2)
+	}
+}
